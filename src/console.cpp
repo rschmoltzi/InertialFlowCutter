@@ -50,6 +50,8 @@ ArrayIDFunc<GeoPos> node_geo_pos;
 
 ArrayIDIDFunc node_original_position;
 
+vector<vector<int>> node_orders;
+
 void check_graph_consitency(){
 	#ifndef NDEBUG
 	const int node_count = tail.image_count(), arc_count = tail.preimage_count();
@@ -2928,6 +2930,32 @@ vector<Command>cmd = {
 		GeoPos p = {stof(arg[0]), stof(arg[1])};
 		cout << min_preimage_over_id_func(id_func(tail.image_count(), [&](int x){return geo_dist(p, node_geo_pos(x));})) << endl;
 	}
+},
+
+{
+	"load_node_orders", 1,
+	"Loads the node orders from the specified file.",
+	[](vector<string> arg) {
+        ifstream f_orders;
+        f_orders.open(arg[0]);
+        if (f_orders.is_open()) {
+            string s_order;
+            string item;
+            vector<vector<int>> new_orders;
+            while (getline(f_orders, s_order, '\n')) {
+                vector<int> v_order;
+                auto str_stream = istringstream(s_order);
+                while (getline(str_stream, item, ',')) {
+                    v_order.push_back(stoi(item));
+                }
+                new_orders.push_back(move(v_order));
+            }
+            node_orders = move(new_orders);
+        } else {
+            cout << "File not found." << endl;
+        }
+	}
+
 }
 };
 
