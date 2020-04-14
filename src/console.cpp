@@ -2956,7 +2956,116 @@ vector<Command>cmd = {
         }
 	}
 
-}
+},
+    {
+            "flow_cutter_accelerated_enum_cuts_from_orders", 1,
+            "Enumerates balanced cuts. Uses preloaded orders.",
+            [](vector<string> args) {
+                int node_count = tail.image_count();
+                int arc_count = tail.preimage_count();
+
+                if (!is_sorted(tail.begin(), tail.end()))
+                    throw runtime_error("arc tails must be sorted");
+                if (!is_symmetric(tail, head))
+                    throw runtime_error("graph must be symmetric");
+                if (!is_connected(tail, head))
+                    throw runtime_error("graph must be connected");
+                if (flow_cutter_config.source < -1 || flow_cutter_config.source >= node_count)
+                    throw std::runtime_error("source node ID out of bounds");
+                if (flow_cutter_config.target < -1 || flow_cutter_config.target >= node_count)
+                    throw std::runtime_error("target node ID out of bounds");
+
+                if (flow_cutter_accelerated::requires_non_negative_weights(flow_cutter_config)) {
+                    for (int i = 0; i < arc_count; ++i)
+                        if (arc_weight(i) < 0)
+                            throw std::runtime_error("arc weights must be non-negative");
+                }
+
+                auto out_arc = invert_sorted_id_id_func(tail);
+                auto back_arc = compute_back_arc_permutation(tail, head);
+
+                auto graph = flow_cutter_accelerated::make_graph(
+                        make_const_ref_id_id_func(tail),
+                        make_const_ref_id_id_func(head),
+                        make_const_ref_id_id_func(back_arc),
+                        make_const_ref_id_func(arc_weight),
+                        ConstIntIDFunc<1>(arc_count), // capacity
+                        make_const_ref_id_func(out_arc)
+                );
+
+
+                tbb::task_scheduler_init scheduler(flow_cutter_config.thread_count);
+                save_text_file(
+                        args[0],
+                        [&](std::ostream &out) {
+                            auto w = std::setw(8);
+                            out
+                                    << w << "time" << ','
+                                    << w << "cutter_instance" << ','
+                                    // << w << "source_node" << ','
+                                    // << w << "target_node" << ','
+                                    << w << "small_side_size" << ','
+                                    << w << "large_side_size" << ','
+                                    << w << "cut_size";
+
+                            if (flow_cutter_config.report_cuts == flow_cutter::Config::ReportCuts::yes)
+                                out << ", cut";
+                            if (flow_cutter_config.dump_state == flow_cutter::Config::DumpState::yes)
+                                out
+                                        << ", source_assimilated, target_assimilated, source_reachable, target_reachable, flow";
+                            out << endl;
+
+                            auto start_time = get_micro_time();
+
+                            flow_cutter_accelerated::AffinityCutterFactory factory(flow_cutter_config);
+                            auto cutter = factory(graph);
+
+                            auto terminal_info = factory.select_source_target_pairs(node_count, move(node_orders));
+
+                            cutter.init(std::move(terminal_info), flow_cutter_config.random_seed, node_geo_pos); //TODO geo pos?
+
+                            cutter.enum_cuts(
+                                    /* shall_continue*/
+                                    [&](const auto &cutter) {
+                                        int next_cut = cutter.get_current_flow_intensity();
+                                        if (cutter.cut_available()) {
+                                            ++next_cut;
+                                        }
+
+                                        return next_cut <= flow_cutter_config.max_cut_size;
+                                    },
+                                    /* report_cut */
+                                    [&](const auto &cutter, int cutter_id) {
+                                        out
+                                                << w << (get_micro_time() - start_time) << ','
+                                                << w << cutter_id << ','
+                                                // << w << node_orders[cutter_id].source << ','
+                                                // << w << node_orders[cutter_id].target << ','
+                                                << w << cutter.get_current_smaller_cut_side_size() << ','
+                                                << w << tail.image_count() - cutter.get_current_smaller_cut_side_size()
+                                                << ','
+                                                << w << cutter.get_current_cut().size();
+                                        if (flow_cutter_config.report_cuts == flow_cutter::Config::ReportCuts::yes)
+                                            out << ", "
+                                                << make_id_string_from_list_with_back_arcs(cutter.get_current_cut(),
+                                                                                           back_arc);
+
+                                        if (flow_cutter_config.dump_state == flow_cutter::Config::DumpState::yes) {
+                                            auto dump = cutter.dump_state();
+                                            out << ','
+                                                << ' ' << make_id_string(dump.source_assimilated) << ','
+                                                << ' ' << make_id_string(dump.target_assimilated) << ','
+                                                << ' ' << make_id_string(dump.source_reachable) << ','
+                                                << ' ' << make_id_string(dump.target_reachable) << ','
+                                                << ' ' << make_id_string(dump.flow);
+                                        }
+                                        out << endl;
+                                    },
+                                    true);
+                        }
+                );
+            }
+    }
 };
 
 int main(int argc, char*argv[]){

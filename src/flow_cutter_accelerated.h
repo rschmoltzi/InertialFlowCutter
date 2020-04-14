@@ -1903,6 +1903,32 @@ namespace flow_cutter_accelerated{
 		const flow_cutter::Config& config;
 	};
 
+	class AffinityCutterFactory {
+	public:
+        explicit AffinityCutterFactory(const flow_cutter::Config& config) : config(config) {}
+
+        template<class Graph>
+        SimpleCutter<Graph> operator()(const Graph& graph) {
+            return SimpleCutter<Graph>(graph, config);
+        }
+
+        MultiCutter::TerminalInformation select_source_target_pairs(int node_count, vector<vector<int>> orders) {
+            MultiCutter::TerminalInformation res;
+            load_inertial_flow_orders(node_count, std::move(orders), res);
+            return res;
+        }
+
+
+        void load_inertial_flow_orders(const int node_count, std::vector<std::vector<int>> orders, MultiCutter::TerminalInformation& terminals) {
+            for (int i = 0; i < orders.size(); i++) {
+                terminals.push_back({std::move(orders[i]), false, {-1, -1}, i});
+            }
+        }
+
+	private:
+	    const flow_cutter::Config& config;
+	};
+
 	inline
 	bool requires_non_negative_weights(flow_cutter::Config config){
 		return
