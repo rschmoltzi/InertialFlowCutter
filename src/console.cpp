@@ -52,7 +52,7 @@ ArrayIDIDFunc node_original_position;
 
 vector<vector<int>> node_orders;
 
-void check_graph_consitency(){
+void check_graph_consitency(){ //TODO
 	#ifndef NDEBUG
 	const int node_count = tail.image_count(), arc_count = tail.preimage_count();
 	assert(tail.preimage_count() == arc_count);
@@ -2936,8 +2936,7 @@ vector<Command>cmd = {
 	"load_node_orders", 1,
 	"Loads the node orders from the specified file.",
 	[](vector<string> arg) {
-        ifstream f_orders;
-        f_orders.open(arg[0]);
+        ifstream f_orders(arg[0]);
         if (f_orders.is_open()) {
             string s_order;
             string item;
@@ -3020,9 +3019,12 @@ vector<Command>cmd = {
                             flow_cutter_accelerated::AffinityCutterFactory factory(flow_cutter_config);
                             auto cutter = factory(graph);
 
-                            auto terminal_info = factory.select_source_target_pairs(node_count, move(node_orders));
+                            auto terminal_info = factory.select_source_target_pairs(node_orders);
 
-                            cutter.init(std::move(terminal_info), flow_cutter_config.random_seed, node_geo_pos); //TODO geo pos?
+                            cout << "Amount orders: " << terminal_info.size() << endl;
+                            cout << "Size first order: " << terminal_info[0].node_order.size() << endl;
+
+                            cutter.init(std::move(terminal_info), flow_cutter_config.random_seed, node_geo_pos);
 
                             cutter.enum_cuts(
                                     /* shall_continue*/

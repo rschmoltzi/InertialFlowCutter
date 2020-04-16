@@ -1912,17 +1912,12 @@ namespace flow_cutter_accelerated{
             return SimpleCutter<Graph>(graph, config);
         }
 
-        MultiCutter::TerminalInformation select_source_target_pairs(int node_count, vector<vector<int>> orders) {
+        MultiCutter::TerminalInformation select_source_target_pairs(vector<vector<int>> orders) {
             MultiCutter::TerminalInformation res;
-            load_inertial_flow_orders(node_count, std::move(orders), res);
-            return res;
-        }
-
-
-        void load_inertial_flow_orders(const int node_count, std::vector<std::vector<int>> orders, MultiCutter::TerminalInformation& terminals) {
-            for (int i = 0; i < orders.size(); i++) {
-                terminals.push_back({std::move(orders[i]), false, {-1, -1}, i});
+            for (auto i = 0; i < orders.size(); i++) {
+                res.push_back({std::move(orders[i]), false, {-1, -1}, i});
             }
+            return res;
         }
 
 	private:
