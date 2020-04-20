@@ -50,5 +50,14 @@ chain(const L&l, const R&r){
 	return result; // NVRO
 }
 
+template<class L, class R>
+L chainList(L&& l, const R&r) { // overloading didn't resolve correctly
+	L result;
+	for (auto el : l) {
+		result.push_back(r(el));
+	}
+	return result;
+}
+
 #endif
 

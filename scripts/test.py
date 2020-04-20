@@ -3,7 +3,7 @@ import subprocess
 console = "../cmake-build-debug/console"
 
 path = "../affinity/"
-graph_name = "fe_ocean"
+graph_name = "test_path"
 graph_ext = ".graph"
 graph_path = path + graph_name + graph_ext
 
@@ -23,6 +23,8 @@ def test_ifc():
     args.append("add_back_arcs")
     args.append("remove_multi_arcs")
     args.append("remove_loops")
+    args.append("reorder_nodes_in_preorder")
+    args.append("sort_arcs")
 
     args.append("flow_cutter_set")
     args.append("random_seed")

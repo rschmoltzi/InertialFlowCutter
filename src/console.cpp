@@ -119,10 +119,14 @@ void keep_nodes_if(const BitIDFunc&node_keep_flag){
 }
 */
 static
-void permutate_nodes(const ArrayIDIDFunc&p){
+void permutate_nodes(const ArrayIDIDFunc&p){ //TODO
 	auto inv_p = inverse_permutation(p);
 	head = chain(std::move(head), inv_p);
 	tail = chain(std::move(tail), inv_p);
+
+	for (size_t i = 0; i < node_orders.size(); i++) {
+        node_orders[i] = chainList(std::move(node_orders[i]), inv_p);
+	}
 
 	node_color = chain(p, std::move(node_color));
 	node_geo_pos = chain(p, std::move(node_geo_pos));
@@ -2813,7 +2817,17 @@ vector<Command>cmd = {
 	"reorder_nodes_in_preorder",
 	"Reorders all nodes according to a dfs rooted at an arbitrary node.",
 	[]{
+        cout << "Order before reorder" << endl;
+        for (auto entry : node_orders[0]) {
+            cout << entry;
+        }
+        cout << endl;
 		permutate_nodes(compute_preorder(compute_successor_function(tail, head)).first);
+		cout << "Order after reorder" << endl;
+		for (auto entry : node_orders[0]) {
+		    cout << entry;
+		}
+		cout << endl;
 	}
 },
 
@@ -2950,6 +2964,7 @@ vector<Command>cmd = {
                 new_orders.push_back(move(v_order));
             }
             node_orders = move(new_orders);
+            cout << "Orders loaded: " << node_orders.size() << endl;
         } else {
             cout << "File not found." << endl;
         }

@@ -1914,8 +1914,8 @@ namespace flow_cutter_accelerated{
 
         MultiCutter::TerminalInformation select_source_target_pairs(vector<vector<int>> orders) {
             MultiCutter::TerminalInformation res;
-            for (auto i = 0; i < orders.size(); i++) {
-                res.push_back({std::move(orders[i]), false, {-1, -1}, i});
+            for (size_t i = 0; i < orders.size(); i++) {
+                res.push_back({std::move(orders[i]), false, {-1, -1}, static_cast<int>(i)});
             }
             return res;
         }
