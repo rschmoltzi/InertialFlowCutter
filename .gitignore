@@ -3,3 +3,4 @@
 .idea/
 /affinity/
 .DS_Store
+/cmake-build-release/
