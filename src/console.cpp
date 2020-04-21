@@ -119,7 +119,7 @@ void keep_nodes_if(const BitIDFunc&node_keep_flag){
 }
 */
 static
-void permutate_nodes(const ArrayIDIDFunc&p){ //TODO
+void permutate_nodes(const ArrayIDIDFunc&p){
 	auto inv_p = inverse_permutation(p);
 	head = chain(std::move(head), inv_p);
 	tail = chain(std::move(tail), inv_p);
@@ -2817,17 +2817,7 @@ vector<Command>cmd = {
 	"reorder_nodes_in_preorder",
 	"Reorders all nodes according to a dfs rooted at an arbitrary node.",
 	[]{
-        cout << "Order before reorder" << endl;
-        for (auto entry : node_orders[0]) {
-            cout << entry;
-        }
-        cout << endl;
 		permutate_nodes(compute_preorder(compute_successor_function(tail, head)).first);
-		cout << "Order after reorder" << endl;
-		for (auto entry : node_orders[0]) {
-		    cout << entry;
-		}
-		cout << endl;
 	}
 },
 
@@ -3035,9 +3025,6 @@ vector<Command>cmd = {
                             auto cutter = factory(graph);
 
                             auto terminal_info = factory.select_source_target_pairs(node_orders);
-
-                            cout << "Amount orders: " << terminal_info.size() << endl;
-                            cout << "Size first order: " << terminal_info[0].node_order.size() << endl;
 
                             cutter.init(std::move(terminal_info), flow_cutter_config.random_seed, node_geo_pos);
 
