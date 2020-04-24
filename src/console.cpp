@@ -2954,7 +2954,6 @@ vector<Command>cmd = {
                 new_orders.push_back(move(v_order));
             }
             node_orders = move(new_orders);
-            cout << "Orders loaded: " << node_orders.size() << endl;
         } else {
             cout << "File not found." << endl;
         }
