@@ -1,17 +1,19 @@
 #!/usr/bin/env python
 
 import networkit as nk
-import itertools, pandas
+import itertools, pandas, random
 
 
 # Makes the output more verbose and adds timings
 # Maybe represent as enum in the future for more granular control
 TIME_STAMPS = False
-DELIMITER = ","
+DELIMITER_NODE = ","
+DELIMITER_ORDER = "\n"
 
 def main():
     TIME_STAMPS = True
     WALSHAW_GRAPH = True
+    AMOUNT_ORDERS = 10
 
     GRAPH = "fe_ocean"
     GRAPH_ENDING = ".graph"
@@ -26,17 +28,21 @@ def main():
     else:
         path_to_graph = GRAPH + GRAPH_ENDING
 
-    calculate_and_save_order(path_to_graph, path_to_ord)
+    calculate_and_save_order(path_to_graph, path_to_ord, AMOUNT_ORDERS)
 
-def calculate_and_save_order(path_to_graph, path_to_ord, reader=nk.graphio.METISGraphReader()):
+def calculate_and_save_order(path_to_graph, path_to_ord, amount_orders, reader=nk.graphio.METISGraphReader()):
     g = load_graph(path_to_graph, reader)
+
+    # Test to check for not connected graphs. Remove for more performance
     comp = nk.components.ConnectedComponents(g)
     comp.run()
     if comp.numberOfComponents() > 1:
         return
-    order = affinity_ordering(g)
+
+
+    orders = affinity_orderings(g, amount_orders)
     with open(path_to_ord, "w") as f:
-        f.write(DELIMITER.join(str(i) for i in order))
+        f.write(DELIMITER_ORDER.join(DELIMITER_NODE.join(str(i) for i in order) for order in orders))
 
 def load_graph(path_to_graph, reader):
     if TIME_STAMPS:
@@ -198,14 +204,11 @@ def contract_to_nodes(g, disjoint_set, d):
 
     return contracted_g
 
-def get_ordering_from_contractions(list_contractions):
-    if TIME_STAMPS:
-        before = pandas.Timestamp.now()
-
+def get_ordering_from_contractions(list_contractions, reorder):
     def rec_ordering(layer, index):
         if layer > 0:
             ordering = list()
-            for i in list_contractions[layer][index]:
+            for i in reorder(list_contractions[layer][index]):
                 ordering += rec_ordering(layer-1, i)
 
             return ordering
@@ -213,14 +216,40 @@ def get_ordering_from_contractions(list_contractions):
             return list_contractions[layer][index]
 
     ordering = rec_ordering(len(list_contractions)-1, 0)
+    return ordering
+
+# Calculates  multiple contractions from the given reorderings
+def get_orderings(list_contractions, n, reorder=None, reorders=None):
+    if TIME_STAMPS:
+        before = pandas.Timestamp.now()
+
+    if reorder == None and reorders == None:
+        raise AttributeError("At least one reorder function must be given")
+
+    def get_orderings_from_contractions(list_contractions, n, reorders):
+        ret = list()
+        for i in range(n):
+            ret.append(get_ordering_from_contractions(list_contractions, reorders[i]))
+
+        return ret
+
+    if reorder != None:
+        ret = get_orderings_from_contractions(list_contractions, n, [reorder]*n)
+    else:
+        if len(reorders) != n:
+            raise ValueError("The amount of reorder functions must match the amount of orders")
+        ret = get_orderings_from_contractions(list_contractions, n, reorders)
 
     if TIME_STAMPS:
         after = pandas.Timestamp.now()
-        print("Calculating final order: {:f}s".format((after-before).total_seconds()))
+        print("Calculating orders: {:f}s".format((after-before).total_seconds()))
 
-    return ordering
+    return ret
 
-def affinity_ordering(g):
+def random_reorder(l):
+    return random.sample(l, len(l))
+
+def affinity_orderings(g, amount_orders):
     if TIME_STAMPS:
         i = 0
         before = pandas.Timestamp.now()
@@ -242,14 +271,13 @@ def affinity_ordering(g):
         if len(curr_contraction.get()) == 1:
             break;
 
+    orderings = get_orderings(contractions, amount_orders, random_reorder)
+
     if TIME_STAMPS:
         after = pandas.Timestamp.now()
         print("Total time: {:f}s".format((after-before).total_seconds()))
 
-    ordering = get_ordering_from_contractions(contractions)
-    #print("Len ordering: {:d}".format(len(ordering)))
-    #print("Amount distinct elements: {:d}".format(len(set(ordering))))
-    return ordering
+    return orderings
 
 if __name__ == '__main__':
     main()

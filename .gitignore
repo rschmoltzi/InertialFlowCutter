@@ -4,3 +4,6 @@
 /affinity/
 .DS_Store
 /cmake-build-release/
+/scripts/networkit/
+/scripts/pyenv/
+/scripts/__pycache__/
