@@ -12,14 +12,16 @@ GRAPH_EXT = ".graph"
 
 ORD_SUB = "orders/"
 ORD_DIR = PATH + ORD_SUB
-ORD_TYPE = "-aff"
+ORD_TYPE = "-PLM"
 ORD_EXT = ".ord"
 
-AMOUNT_ORDERS = 1
+AMOUNT_ORDERS = 3
 EPSILONS = [0.0, 0.01, 0.03, 0.05]
 
+#TODO tighten up globals and paths in one neat place
+
 def main():
-    calculate_all_orders(affinity_order.affinity_orderings)
+    calculate_all_orders(affinity_order.recursive_PLM_orderings)
 
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)

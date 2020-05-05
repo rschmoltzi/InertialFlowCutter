@@ -3,6 +3,7 @@
 import networkit as nk
 import itertools, pandas, random
 from anytree import Node, RenderTree, PreOrderIter, AnyNode
+from anytree.iterators import AbstractIter
 
 
 # Makes the output more verbose and adds timings
@@ -60,7 +61,19 @@ def load_graph(path_to_graph, reader):
 
 # TODO: implement for multiple orders
 def recursive_PLM_orderings(g, amount_orders):
-    return [recursive_PLM_ordering(g)]
+    if TIME_STAMPS:
+        i = 0
+        before = pandas.Timestamp.now()
+
+    root = recursive_PLM(g)
+
+    orderings = get_orderings_PLM(root, amount_orders, random_reorder)
+
+    if TIME_STAMPS:
+        after = pandas.Timestamp.now()
+        print("Total time: {:f}s".format((after-before).total_seconds()))
+
+    return orderings
 
 # g is graph on which the subgraph is build, s is a set of nodes
 def subgraph(g, s):
@@ -74,7 +87,7 @@ def subgraph(g, s):
     return res
 
 # For the creation of additional orderings one should rewrite the PreOrderIter function
-def recursive_PLM_ordering(g):
+def recursive_PLM(g):
 
     if TIME_STAMPS:
         i = 0
@@ -98,14 +111,59 @@ def recursive_PLM_ordering(g):
     rec_PLM(g, root, range(g.numberOfNodes()))
     #print(RenderTree(root))
 
-    # Creates a flat list containing the ordering. Only leafs have a old_ids attribute
-    ordering = [node_id for node in PreOrderIter(root) if node.is_leaf for node_id in node.old_ids]
-
     if TIME_STAMPS:
         after = pandas.Timestamp.now()
         print("Total time: {:f}s".format((after-before).total_seconds()))
 
+    return root
+
+def get_ordering_PLM(root, reorder):
+    class DFSIter(AbstractIter):
+
+        @staticmethod
+        def _iter(children, filter_, stop, maxlevel):
+            for child_ in reorder(children):
+                if stop(child_):
+                    continue
+                if filter_(child_):
+                    yield child_
+                if not AbstractIter._abort_at_level(2, maxlevel):
+                    descendantmaxlevel = maxlevel - 1 if maxlevel else None
+                    for descendant_ in PreOrderIter._iter(child_.children, filter_, stop, descendantmaxlevel):
+                        yield descendant_
+
+    # Creates a flat list containing the ordering. Only leafs have a old_ids attribute
+    ordering = [node_id for node in DFSIter(root) if node.is_leaf for node_id in node.old_ids]
+
     return ordering
+
+# Basically the same as get_orderings
+def get_orderings_PLM(root, n, reorder=None, reorders=None):
+    if TIME_STAMPS:
+        before = pandas.Timestamp.now()
+
+    if reorder == None and reorders == None:
+        raise AttributeError("At least one reorder function must be given")
+
+    def get_orderings_from_contractions(list_contractions, n, reorders):
+        ret = list()
+        for i in range(n):
+            ret.append(get_ordering_PLM(list_contractions, reorders[i]))
+
+        return ret
+
+    if reorder != None:
+        ret = get_orderings_from_contractions(root, n, [reorder]*n)
+    else:
+        if len(reorders) != n:
+            raise ValueError("The amount of reorder functions must match the amount of orders")
+        ret = get_orderings_from_contractions(root, n, reorders)
+
+    if TIME_STAMPS:
+        after = pandas.Timestamp.now()
+        print("Calculating orders: {:f}s".format((after-before).total_seconds()))
+
+    return ret
 
 # Needs an indexed graph
 def set_weights_graph(g):
