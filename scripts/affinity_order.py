@@ -2,6 +2,7 @@
 
 import networkit as nk
 import itertools, pandas, random
+from anytree import Node, RenderTree, PreOrderIter, AnyNode
 
 
 # Makes the output more verbose and adds timings
@@ -9,6 +10,7 @@ import itertools, pandas, random
 TIME_STAMPS = False
 DELIMITER_NODE = ","
 DELIMITER_ORDER = "\n"
+RESOLUTION = 0.01
 
 def main():
     TIME_STAMPS = True
@@ -30,7 +32,7 @@ def main():
 
     calculate_and_save_order(path_to_graph, path_to_ord, AMOUNT_ORDERS)
 
-def calculate_and_save_order(path_to_graph, path_to_ord, amount_orders, reader=nk.graphio.METISGraphReader()):
+def calculate_and_save_order(path_to_graph, path_to_ord, ordering_alg, amount_orders, reader=nk.graphio.METISGraphReader()):
     g = load_graph(path_to_graph, reader)
 
     # Test to check for not connected graphs. Remove for more performance
@@ -39,8 +41,7 @@ def calculate_and_save_order(path_to_graph, path_to_ord, amount_orders, reader=n
     if comp.numberOfComponents() > 1:
         return
 
-
-    orders = affinity_orderings(g, amount_orders)
+    orders = ordering_alg(g, amount_orders)
     with open(path_to_ord, "w") as f:
         f.write(DELIMITER_ORDER.join(DELIMITER_NODE.join(str(i) for i in order) for order in orders))
 
@@ -57,8 +58,54 @@ def load_graph(path_to_graph, reader):
 
     return g
 
-# def edge_print(u, v, weight, edgeid):
-#     print('Nodes:', u, ',' , v , 'Weight:', weight, 'Id:', edgeid)
+# TODO: implement for multiple orders
+def recursive_PLM_orderings(g, amount_orders):
+    return [recursive_PLM_ordering(g)]
+
+# g is graph on which the subgraph is build, s is a set of nodes
+def subgraph(g, s):
+    res = nk.Graph(len(s), weighted=g.isWeighted())
+    node_ids = dict(zip(s, range(len(s))))
+    for u in s:
+        for n in g.neighbors(u):
+            if u < n and n in s:
+                res.addEdge(node_ids[u], node_ids[n], g.weight(u, n))
+
+    return res
+
+# For the creation of additional orderings one should rewrite the PreOrderIter function
+def recursive_PLM_ordering(g):
+
+    if TIME_STAMPS:
+        i = 0
+        before = pandas.Timestamp.now()
+
+    def rec_PLM(s, parent, old_node_ids):
+        node = AnyNode(parent=parent)
+        part = nk.community.PLM(s, par="none randomized").run().getPartition()
+        if part.numberOfSubsets() == 1:
+            AnyNode(parent=node, cluster=list(part.getMembers(0)), old_ids=[old_node_ids[i] for i in part.getMembers(0)])
+            return
+
+        for n in range(part.numberOfSubsets()):
+            p = part.getMembers(n)
+            if len(p) > g.numberOfNodes() * RESOLUTION:
+                rec_PLM(subgraph(s, p), node, [old_node_ids[i] for i in p])
+            else:
+                AnyNode(parent=node, cluster=list(p), old_ids=[old_node_ids[i] for i in p])
+
+    root = Node("root")
+    rec_PLM(g, root, range(g.numberOfNodes()))
+    #print(RenderTree(root))
+
+    # Creates a flat list containing the ordering. Only leafs have a old_ids attribute
+    ordering = [node_id for node in PreOrderIter(root) if node.is_leaf for node_id in node.old_ids]
+
+    if TIME_STAMPS:
+        after = pandas.Timestamp.now()
+        print("Total time: {:f}s".format((after-before).total_seconds()))
+
+    return ordering
 
 # Needs an indexed graph
 def set_weights_graph(g):
@@ -78,7 +125,6 @@ def set_weights_graph(g):
         print("Setting weights: {:f}s".format((after-before).total_seconds()))
 
 # each element is stored at the index that is double its value
-
 class DisjointSet:
     '''
      Array based implementation of the disjoint set. Can only store integer values from 0 to n as elements,
@@ -143,7 +189,6 @@ class DisjointSet:
         return d # before list(d.values())
 
 # doesnt work for not connected graphs
-
 def find_closest_neighbor_edges(g):
     if TIME_STAMPS:
         before = pandas.Timestamp.now()

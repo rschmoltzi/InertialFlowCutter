@@ -15,11 +15,11 @@ ORD_DIR = PATH + ORD_SUB
 ORD_TYPE = "-aff"
 ORD_EXT = ".ord"
 
+AMOUNT_ORDERS = 1
 EPSILONS = [0.0, 0.01, 0.03, 0.05]
 
 def main():
-    # calculate_all_orders()
-    # print("\n\n".join(enum_cuts_all()))
+    calculate_all_orders(affinity_order.affinity_orderings)
 
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
@@ -57,7 +57,7 @@ def fit_row_in_summary_epsilons(summary_row, row):
 def summarize_data(data):
     col = list(map(get_eps_label, EPSILONS))
     col.append("Time IFC")
-    summary = pd.DataFrame(index=data, columns=col)
+    summary = pd.DataFrame(index=sorted(data), columns=col)
     for name, frame in data.items():
         summary.loc[name, "Time IFC"] = frame["time"].max()
         for ind, row in frame.iterrows():
@@ -71,7 +71,7 @@ def enum_cuts_all():
     data = dict()
 
     for entry in scandir(ORD_DIR):
-        if entry.name.endswith(ORD_EXT):
+        if entry.name.endswith(ORD_TYPE+ORD_EXT):
             entry_start = pd.Timestamp.now()
 
             name = strip_ext(entry.name, ORD_TYPE + ORD_EXT)
@@ -87,7 +87,7 @@ def enum_cuts_all():
 
 
 
-def calculate_all_orders():
+def calculate_all_orders(ordering_alg):
     before = pd.Timestamp.now()
 
     for entry in scandir(GRAPH_DIR):
@@ -96,7 +96,7 @@ def calculate_all_orders():
             print("Starting order calculation for " + entry.name)
 
             name = strip_ext(entry.name, GRAPH_EXT)
-            affinity_order.calculate_and_save_order(get_graph_path(name), get_ord_path(name))
+            affinity_order.calculate_and_save_order(get_graph_path(name), get_ord_path(name), ordering_alg, AMOUNT_ORDERS)
 
             entry_end = pd.Timestamp.now()
             print("Calculating order for " + entry.name + ": {:f}s".format((entry_end-entry_start).total_seconds()))
