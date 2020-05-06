@@ -1,39 +1,34 @@
-import subprocess, affinity_order, math,io
+import subprocess, affinity_order, math, io, config, sys
 import pandas as pd
 from os import scandir
 
-console = "../cmake-build-release/console"
-
-PATH = "../affinity/"
-
-GRAPH_SUB = "walshaw/"
-GRAPH_DIR = PATH + GRAPH_SUB
-GRAPH_EXT = ".graph"
-
-ORD_SUB = "orders/"
-ORD_DIR = PATH + ORD_SUB
-ORD_TYPE = "-PLM"
-ORD_EXT = ".ord"
-
-AMOUNT_ORDERS = 3
-EPSILONS = [0.0, 0.01, 0.03, 0.05]
-
-#TODO tighten up globals and paths in one neat place
 
 def main():
-    calculate_all_orders(affinity_order.recursive_PLM_orderings)
+    if len(sys.argv) != 2:
+        raise AttributeError("You must specify exactly one ordering algorithm.")
+    if sys.argv[1] not in config.ORD_TYPE:
+        raise ValueError("The given argument does not represent an ordering algorithm")
+
+    ord_rep = sys.argv[1]
+
+    calculate_all_orders(affinity_order.ORD_ALG[sys.argv[1]], ord_rep)
 
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', None)
-    print(enum_cuts_all())
+
+    ret = enum_cuts_all(ord_rep)
+
+    #Can be used to create a pretty HTML output
+    #ret.style.format({'Time IFC': "{:.2f}"})
+    print(ret)
 
 
 def get_graph_path(name):
-    return GRAPH_DIR + name + GRAPH_EXT
+    return config.GRAPH_DIR + name + config.GRAPH_EXT
 
-def get_ord_path(name):
-    return PATH + ORD_SUB + name + ORD_TYPE + ORD_EXT
+def get_ord_path(name, ord_rep):
+    return config.PATH + config.ORD_SUB + name + config.ORD_TYPE[ord_rep] + config.ORD_EXT
 
 def strip_ext(name, ext):
     if name.endswith(ext):
@@ -51,69 +46,76 @@ def calculate_eps(small_side, large_side):
 
 def fit_row_in_summary_epsilons(summary_row, row):
     eps = calculate_eps(row["small_side_size"], row["large_side_size"])
-    for cmp_eps in EPSILONS:
+    for cmp_eps in config.EPSILONS:
         if eps <= cmp_eps:
             if math.isnan(summary_row[get_eps_label(cmp_eps)]) or row["cut_size"] < summary_row[get_eps_label(cmp_eps)]:
                 summary_row[get_eps_label(cmp_eps)] = row["cut_size"]
 
 def summarize_data(data):
-    col = list(map(get_eps_label, EPSILONS))
+    col = list(map(get_eps_label, config.EPSILONS))
     col.append("Time IFC")
     summary = pd.DataFrame(index=sorted(data), columns=col)
     for name, frame in data.items():
-        summary.loc[name, "Time IFC"] = frame["time"].max()
+        summary.loc[name, "Time IFC"] = frame["time"].max() / 1000000
         for ind, row in frame.iterrows():
             fit_row_in_summary_epsilons(summary.loc[name, :], row)
 
     return summary
 
-def enum_cuts_all():
-    before = pd.Timestamp.now()
+def enum_cuts_all(ord_rep):
+    if config.TIME_STAMPS >= config.TimeStamps.SPARSE:
+        before = pd.Timestamp.now()
 
     data = dict()
 
-    for entry in scandir(ORD_DIR):
-        if entry.name.endswith(ORD_TYPE+ORD_EXT):
-            entry_start = pd.Timestamp.now()
+    for entry in scandir(config.ORD_DIR):
+        if entry.name.endswith(config.ORD_TYPE[ord_rep] + config.ORD_EXT):
+            if config.TIME_STAMPS >= config.TimeStamps.SOME:
+                entry_start = pd.Timestamp.now()
 
-            name = strip_ext(entry.name, ORD_TYPE + ORD_EXT)
-            data[name] = run(args_enum_cuts(name))
+            name = strip_ext(entry.name, config.ORD_TYPE[ord_rep] + config.ORD_EXT)
+            data[name] = run(args_enum_cuts(name, ord_rep))
 
-            entry_end = pd.Timestamp.now()
-            print("Calculating cut on " + entry.name + ": {:f}s".format((entry_end-entry_start).total_seconds()))
+            if config.TIME_STAMPS >= config.TimeStamps.SOME:
+                entry_end = pd.Timestamp.now()
+                print("Calculating cut on " + entry.name + ": {:f}s".format((entry_end-entry_start).total_seconds()))
 
-    after = pd.Timestamp.now()
-    print("Calculating cuts: {:f}s".format((after-before).total_seconds()))
+    if config.TIME_STAMPS >= config.TimeStamps.SPARSE:
+        after = pd.Timestamp.now()
+        print("Calculating cuts: {:f}s".format((after-before).total_seconds()))
 
     return summarize_data(data)
 
 
 
-def calculate_all_orders(ordering_alg):
-    before = pd.Timestamp.now()
+def calculate_all_orders(ordering_alg, ord_rep):
+    if config.TIME_STAMPS >= config.TimeStamps.SPARSE:
+        before = pd.Timestamp.now()
 
-    for entry in scandir(GRAPH_DIR):
-        if entry.name.endswith(GRAPH_EXT):
-            entry_start = pd.Timestamp.now()
-            print("Starting order calculation for " + entry.name)
+    for entry in scandir(config.GRAPH_DIR):
+        if entry.name.endswith(config.GRAPH_EXT):
+            if config.TIME_STAMPS >= config.TimeStamps.SOME:
+                entry_start = pd.Timestamp.now()
 
-            name = strip_ext(entry.name, GRAPH_EXT)
-            affinity_order.calculate_and_save_order(get_graph_path(name), get_ord_path(name), ordering_alg, AMOUNT_ORDERS)
+            name = strip_ext(entry.name, config.GRAPH_EXT)
+            affinity_order.calculate_and_save_order(get_graph_path(name), get_ord_path(name, ord_rep), ordering_alg, config.AMOUNT_ORDERS)
 
-            entry_end = pd.Timestamp.now()
-            print("Calculating order for " + entry.name + ": {:f}s".format((entry_end-entry_start).total_seconds()))
+            if config.TIME_STAMPS >= config.TimeStamps.SOME:
+                entry_end = pd.Timestamp.now()
+                print("Calculating order for " + entry.name + ": {:f}s".format((entry_end-entry_start).total_seconds()))
 
-    after = pd.Timestamp.now()
-    print("Calculating orders: {:f}s".format((after-before).total_seconds()))
+    if config.TIME_STAMPS >= config.TimeStamps.SPARSE:
+        after = pd.Timestamp.now()
+        print("Calculating orders: {:f}s".format((after-before).total_seconds()))
 
-def args_enum_cuts(name):
-    args = [console]
+def args_enum_cuts(name, ord_rep):
+    args = [config.CONSOLE]
 
     args.append("load_metis_graph")
     args.append(get_graph_path(name))
 
     args.append("load_node_orders")
-    args.append(get_ord_path(name))
+    args.append(get_ord_path(name, ord_rep))
 
     args.append("add_back_arcs")
     args.append("remove_multi_arcs")

@@ -1,37 +1,10 @@
 #!/usr/bin/env python
 
 import networkit as nk
-import itertools, pandas, random
+import itertools, random, config
+import pandas as pd
 from anytree import Node, RenderTree, PreOrderIter, AnyNode
 from anytree.iterators import AbstractIter
-
-
-# Makes the output more verbose and adds timings
-# Maybe represent as enum in the future for more granular control
-TIME_STAMPS = False
-DELIMITER_NODE = ","
-DELIMITER_ORDER = "\n"
-RESOLUTION = 0.01
-
-def main():
-    TIME_STAMPS = True
-    WALSHAW_GRAPH = True
-    AMOUNT_ORDERS = 10
-
-    GRAPH = "fe_ocean"
-    GRAPH_ENDING = ".graph"
-    WALSHAW_PATH = "../affinity/walshaw/"
-
-    ORD_PATH = "../affinity/orders/"
-    ORD_END = "-aff.ord"
-    path_to_ord = ORD_PATH + GRAPH + ORD_END
-
-    if WALSHAW_GRAPH:
-        path_to_graph = WALSHAW_PATH + GRAPH + GRAPH_ENDING
-    else:
-        path_to_graph = GRAPH + GRAPH_ENDING
-
-    calculate_and_save_order(path_to_graph, path_to_ord, AMOUNT_ORDERS)
 
 def calculate_and_save_order(path_to_graph, path_to_ord, ordering_alg, amount_orders, reader=nk.graphio.METISGraphReader()):
     g = load_graph(path_to_graph, reader)
@@ -44,33 +17,34 @@ def calculate_and_save_order(path_to_graph, path_to_ord, ordering_alg, amount_or
 
     orders = ordering_alg(g, amount_orders)
     with open(path_to_ord, "w") as f:
-        f.write(DELIMITER_ORDER.join(DELIMITER_NODE.join(str(i) for i in order) for order in orders))
+        f.write(config.DELIMITER_ORDER.join(config.DELIMITER_NODE.join(str(i) for i in order) for order in orders))
 
 def load_graph(path_to_graph, reader):
-    if TIME_STAMPS:
-        before = pandas.Timestamp.now()
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        before = pd.Timestamp.now()
 
     g = nk.graphtools.toWeighted(reader.read(path_to_graph))
     g.indexEdges()
 
-    if TIME_STAMPS:
-        after = pandas.Timestamp.now()
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        after = pd.Timestamp.now()
         print("Loading graph: {:f}s".format((after-before).total_seconds()))
 
     return g
 
-# TODO: implement for multiple orders
+
 def recursive_PLM_orderings(g, amount_orders):
-    if TIME_STAMPS:
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
         i = 0
-        before = pandas.Timestamp.now()
+        before = pd.Timestamp.now()
 
     root = recursive_PLM(g)
 
+    # ugly rn
     orderings = get_orderings_PLM(root, amount_orders, random_reorder)
 
-    if TIME_STAMPS:
-        after = pandas.Timestamp.now()
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        after = pd.Timestamp.now()
         print("Total time: {:f}s".format((after-before).total_seconds()))
 
     return orderings
@@ -89,9 +63,9 @@ def subgraph(g, s):
 # For the creation of additional orderings one should rewrite the PreOrderIter function
 def recursive_PLM(g):
 
-    if TIME_STAMPS:
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
         i = 0
-        before = pandas.Timestamp.now()
+        before = pd.Timestamp.now()
 
     def rec_PLM(s, parent, old_node_ids):
         node = AnyNode(parent=parent)
@@ -102,7 +76,7 @@ def recursive_PLM(g):
 
         for n in range(part.numberOfSubsets()):
             p = part.getMembers(n)
-            if len(p) > g.numberOfNodes() * RESOLUTION:
+            if len(p) > g.numberOfNodes() * config.PLM_RESOLUTION:
                 rec_PLM(subgraph(s, p), node, [old_node_ids[i] for i in p])
             else:
                 AnyNode(parent=node, cluster=list(p), old_ids=[old_node_ids[i] for i in p])
@@ -111,13 +85,14 @@ def recursive_PLM(g):
     rec_PLM(g, root, range(g.numberOfNodes()))
     #print(RenderTree(root))
 
-    if TIME_STAMPS:
-        after = pandas.Timestamp.now()
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        after = pd.Timestamp.now()
         print("Total time: {:f}s".format((after-before).total_seconds()))
 
     return root
 
 def get_ordering_PLM(root, reorder):
+    # Slightly modified from https://github.com/c0fec0de/anytree/blob/master/anytree/iterators/preorderiter.py
     class DFSIter(AbstractIter):
 
         @staticmethod
@@ -139,11 +114,13 @@ def get_ordering_PLM(root, reorder):
 
 # Basically the same as get_orderings
 def get_orderings_PLM(root, n, reorder=None, reorders=None):
-    if TIME_STAMPS:
-        before = pandas.Timestamp.now()
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        before = pd.Timestamp.now()
 
     if reorder == None and reorders == None:
         raise AttributeError("At least one reorder function must be given")
+
+    random.seed(config.SEED)
 
     def get_orderings_from_contractions(list_contractions, n, reorders):
         ret = list()
@@ -159,16 +136,16 @@ def get_orderings_PLM(root, n, reorder=None, reorders=None):
             raise ValueError("The amount of reorder functions must match the amount of orders")
         ret = get_orderings_from_contractions(root, n, reorders)
 
-    if TIME_STAMPS:
-        after = pandas.Timestamp.now()
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        after = pd.Timestamp.now()
         print("Calculating orders: {:f}s".format((after-before).total_seconds()))
 
     return ret
 
 # Needs an indexed graph
 def set_weights_graph(g):
-    if TIME_STAMPS:
-        before = pandas.Timestamp.now()
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        before = pd.Timestamp.now()
 
     tes = nk.sparsification.TriangleEdgeScore(g)
     tes.run()
@@ -178,8 +155,8 @@ def set_weights_graph(g):
         g.setWeight(u, v, (1 + scores[edgeid]) / (1 + len(g.neighbors(u)) + len(g.neighbors(v)) - scores[edgeid]))
     g.forEdges(set_weight_to_edge)
 
-    if TIME_STAMPS:
-        after = pandas.Timestamp.now()
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        after = pd.Timestamp.now()
         print("Setting weights: {:f}s".format((after-before).total_seconds()))
 
 # each element is stored at the index that is double its value
@@ -248,8 +225,8 @@ class DisjointSet:
 
 # doesnt work for not connected graphs
 def find_closest_neighbor_edges(g):
-    if TIME_STAMPS:
-        before = pandas.Timestamp.now()
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        before = pd.Timestamp.now()
 
     disjoint_set = DisjointSet(g.numberOfNodes())
     for u in g.iterNodes():
@@ -263,8 +240,8 @@ def find_closest_neighbor_edges(g):
         if strongest_neighbor > -1:
             disjoint_set.union(u, strongest_neighbor)
 
-    if TIME_STAMPS:
-        after = pandas.Timestamp.now()
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        after = pd.Timestamp.now()
         print("Finding strongest edges: {:f}s".format((after-before).total_seconds()))
 
     return disjoint_set
@@ -272,8 +249,8 @@ def find_closest_neighbor_edges(g):
 
 # treats edges with weight 0 and non connected vertices equally
 def contract_to_nodes(g, disjoint_set, d):
-    if TIME_STAMPS:
-        before = pandas.Timestamp.now()
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        before = pd.Timestamp.now()
 
     # overhead shouldnt be too much.
     # there hopefully is a cleaner solution
@@ -301,8 +278,8 @@ def contract_to_nodes(g, disjoint_set, d):
 
     contracted_g.forEdges(buildAvgWeights)
 
-    if TIME_STAMPS:
-        after = pandas.Timestamp.now()
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        after = pd.Timestamp.now()
         print("Contracting graph: {:f}s".format((after-before).total_seconds()))
 
     return contracted_g
@@ -323,11 +300,13 @@ def get_ordering_from_contractions(list_contractions, reorder):
 
 # Calculates  multiple contractions from the given reorderings
 def get_orderings(list_contractions, n, reorder=None, reorders=None):
-    if TIME_STAMPS:
-        before = pandas.Timestamp.now()
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        before = pd.Timestamp.now()
 
     if reorder == None and reorders == None:
         raise AttributeError("At least one reorder function must be given")
+
+    random.seed(config.SEED)
 
     def get_orderings_from_contractions(list_contractions, n, reorders):
         ret = list()
@@ -343,8 +322,8 @@ def get_orderings(list_contractions, n, reorder=None, reorders=None):
             raise ValueError("The amount of reorder functions must match the amount of orders")
         ret = get_orderings_from_contractions(list_contractions, n, reorders)
 
-    if TIME_STAMPS:
-        after = pandas.Timestamp.now()
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        after = pd.Timestamp.now()
         print("Calculating orders: {:f}s".format((after-before).total_seconds()))
 
     return ret
@@ -353,16 +332,16 @@ def random_reorder(l):
     return random.sample(l, len(l))
 
 def affinity_orderings(g, amount_orders):
-    if TIME_STAMPS:
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
         i = 0
-        before = pandas.Timestamp.now()
+        before = pd.Timestamp.now()
 
     set_weights_graph(g)
     contractions = list()
 
     # officially supported python construct for 'do ... while'
     while True:
-        if TIME_STAMPS:
+        if config.TIME_STAMPS >= config.TimeStamps.ALL:
             print("------ Layer {:d} ------".format(i))
             i += 1
 
@@ -376,11 +355,10 @@ def affinity_orderings(g, amount_orders):
 
     orderings = get_orderings(contractions, amount_orders, random_reorder)
 
-    if TIME_STAMPS:
-        after = pandas.Timestamp.now()
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        after = pd.Timestamp.now()
         print("Total time: {:f}s".format((after-before).total_seconds()))
 
     return orderings
 
-if __name__ == '__main__':
-    main()
+ORD_ALG = dict(zip(config.ORD_TYPE, [recursive_PLM_orderings, affinity_orderings]))
