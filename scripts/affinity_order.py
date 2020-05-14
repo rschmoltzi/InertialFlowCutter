@@ -19,7 +19,7 @@ def calculate_and_save_order(path_to_graph, path_to_ord, ordering_alg, amount_or
     with open(path_to_ord, "w") as f:
         f.write(config.DELIMITER_ORDER.join(config.DELIMITER_NODE.join(str(i) for i in order) for order in orders))
 
-def load_graph(path_to_graph, reader):
+def load_graph(path_to_graph, reader=nk.graphio.METISGraphReader()):
     if config.TIME_STAMPS >= config.TimeStamps.ALL:
         before = pd.Timestamp.now()
 
@@ -39,6 +39,8 @@ def recursive_PLM_orderings(g, amount_orders):
         before = pd.Timestamp.now()
 
     root = recursive_PLM(g)
+
+    print(RenderTree(root))
 
     # ugly rn
     orderings = get_orderings_PLM(root, amount_orders, random_reorder)
@@ -93,7 +95,7 @@ def recursive_PLM(g):
 
 def get_ordering_PLM(root, reorder):
     # Slightly modified from https://github.com/c0fec0de/anytree/blob/master/anytree/iterators/preorderiter.py
-    class DFSIter(AbstractIter):
+    class RandomDFSIter(AbstractIter):
 
         @staticmethod
         def _iter(children, filter_, stop, maxlevel):
@@ -104,11 +106,11 @@ def get_ordering_PLM(root, reorder):
                     yield child_
                 if not AbstractIter._abort_at_level(2, maxlevel):
                     descendantmaxlevel = maxlevel - 1 if maxlevel else None
-                    for descendant_ in PreOrderIter._iter(child_.children, filter_, stop, descendantmaxlevel):
+                    for descendant_ in RandomDFSIter._iter(child_.children, filter_, stop, descendantmaxlevel):
                         yield descendant_
 
     # Creates a flat list containing the ordering. Only leafs have a old_ids attribute
-    ordering = [node_id for node in DFSIter(root) if node.is_leaf for node_id in node.old_ids]
+    ordering = [node_id for node in RandomDFSIter(root) if node.is_leaf for node_id in node.old_ids]
 
     return ordering
 
@@ -122,19 +124,19 @@ def get_orderings_PLM(root, n, reorder=None, reorders=None):
 
     random.seed(config.SEED)
 
-    def get_orderings_from_contractions(list_contractions, n, reorders):
+    def get_orderings_from_contractions(root, reorders):
         ret = list()
         for i in range(n):
-            ret.append(get_ordering_PLM(list_contractions, reorders[i]))
+            ret.append(get_ordering_PLM(root, reorders[i]))
 
         return ret
 
     if reorder != None:
-        ret = get_orderings_from_contractions(root, n, [reorder]*n)
+        ret = get_orderings_from_contractions(root, [reorder]*n)
     else:
         if len(reorders) != n:
             raise ValueError("The amount of reorder functions must match the amount of orders")
-        ret = get_orderings_from_contractions(root, n, reorders)
+        ret = get_orderings_from_contractions(root, reorders)
 
     if config.TIME_STAMPS >= config.TimeStamps.ALL:
         after = pd.Timestamp.now()
