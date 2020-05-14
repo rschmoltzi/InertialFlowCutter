@@ -40,10 +40,7 @@ def recursive_PLM_orderings(g, amount_orders):
 
     root = recursive_PLM(g)
 
-    print(RenderTree(root))
-
-    # ugly rn
-    orderings = get_orderings_PLM(root, amount_orders, random_reorder)
+    orderings = get_orderings(root, amount_orders, random_reorder)
 
     if config.TIME_STAMPS >= config.TimeStamps.ALL:
         after = pd.Timestamp.now()
@@ -114,8 +111,7 @@ def get_ordering_PLM(root, reorder):
 
     return ordering
 
-# Basically the same as get_orderings
-def get_orderings_PLM(root, n, reorder=None, reorders=None):
+def get_orderings(root, n, reorder=None, reorders=None):
     if config.TIME_STAMPS >= config.TimeStamps.ALL:
         before = pd.Timestamp.now()
 
@@ -124,7 +120,7 @@ def get_orderings_PLM(root, n, reorder=None, reorders=None):
 
     random.seed(config.SEED)
 
-    def get_orderings_from_contractions(root, reorders):
+    def get_orderings_from_tree(root, reorders):
         ret = list()
         for i in range(n):
             ret.append(get_ordering_PLM(root, reorders[i]))
@@ -132,11 +128,11 @@ def get_orderings_PLM(root, n, reorder=None, reorders=None):
         return ret
 
     if reorder != None:
-        ret = get_orderings_from_contractions(root, [reorder]*n)
+        ret = get_orderings_from_tree(root, [reorder]*n)
     else:
         if len(reorders) != n:
             raise ValueError("The amount of reorder functions must match the amount of orders")
-        ret = get_orderings_from_contractions(root, reorders)
+        ret = get_orderings_from_tree(root, reorders)
 
     if config.TIME_STAMPS >= config.TimeStamps.ALL:
         after = pd.Timestamp.now()
@@ -300,36 +296,6 @@ def get_ordering_from_contractions(list_contractions, reorder):
     ordering = rec_ordering(len(list_contractions)-1, 0)
     return ordering
 
-# Calculates  multiple contractions from the given reorderings
-def get_orderings(list_contractions, n, reorder=None, reorders=None):
-    if config.TIME_STAMPS >= config.TimeStamps.ALL:
-        before = pd.Timestamp.now()
-
-    if reorder == None and reorders == None:
-        raise AttributeError("At least one reorder function must be given")
-
-    random.seed(config.SEED)
-
-    def get_orderings_from_contractions(list_contractions, n, reorders):
-        ret = list()
-        for i in range(n):
-            ret.append(get_ordering_from_contractions(list_contractions, reorders[i]))
-
-        return ret
-
-    if reorder != None:
-        ret = get_orderings_from_contractions(list_contractions, n, [reorder]*n)
-    else:
-        if len(reorders) != n:
-            raise ValueError("The amount of reorder functions must match the amount of orders")
-        ret = get_orderings_from_contractions(list_contractions, n, reorders)
-
-    if config.TIME_STAMPS >= config.TimeStamps.ALL:
-        after = pd.Timestamp.now()
-        print("Calculating orders: {:f}s".format((after-before).total_seconds()))
-
-    return ret
-
 def random_reorder(l):
     return random.sample(l, len(l))
 
@@ -339,7 +305,14 @@ def affinity_orderings(g, amount_orders):
         before = pd.Timestamp.now()
 
     set_weights_graph(g)
-    contractions = list()
+
+    curr_contraction = find_closest_neighbor_edges(g)
+    dict_contraction = curr_contraction.get()
+    g = contract_to_nodes(g, curr_contraction, dict_contraction)
+
+    last_iteration = list()
+    for k, v in dict_contraction.items():
+        last_iteration.append(AnyNode(old_ids=v))
 
     # officially supported python construct for 'do ... while'
     while True:
@@ -350,12 +323,21 @@ def affinity_orderings(g, amount_orders):
         curr_contraction = find_closest_neighbor_edges(g)
         dict_contraction = curr_contraction.get()
         g = contract_to_nodes(g, curr_contraction, dict_contraction)
-        contractions.append(list(dict_contraction.values()))
 
-        if len(curr_contraction.get()) == 1:
+        curr_iteration = list()
+        for k, v in dict_contraction.items(): # Should be the order of the contractions
+            n = AnyNode()
+            n.children = [last_iteration[i] for i in v]
+            curr_iteration.append(n)
+
+        last_iteration = curr_iteration
+
+        if len(dict_contraction) == 1:
             break;
 
-    orderings = get_orderings(contractions, amount_orders, random_reorder)
+    print(RenderTree(last_iteration[0]))
+
+    orderings = get_orderings(last_iteration[0], amount_orders, random_reorder)
 
     if config.TIME_STAMPS >= config.TimeStamps.ALL:
         after = pd.Timestamp.now()
