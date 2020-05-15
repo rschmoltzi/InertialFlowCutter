@@ -5,6 +5,7 @@ import itertools, random, config
 import pandas as pd
 from anytree import Node, RenderTree, PreOrderIter, AnyNode
 from anytree.iterators import AbstractIter
+from collections import Counter
 
 def calculate_and_save_order(path_to_graph, path_to_ord, ordering_alg, amount_orders, reader=nk.graphio.METISGraphReader()):
     g = load_graph(path_to_graph, reader)
@@ -32,6 +33,53 @@ def load_graph(path_to_graph, reader=nk.graphio.METISGraphReader()):
 
     return g
 
+def random_reorder(l):
+    return random.sample(l, len(l))
+
+# Returns a function that realizes a randomized-connected reordering on the given graph g
+def connected_random_reorder_func(g):
+
+    def connected_random_reorder(l):
+        if len(l) <= 1:
+            return l
+
+        nodes = dict()
+        for cluster in l:
+            nodes[cluster] = set([node_id for node in PreOrderIter(cluster) if node.is_leaf for node_id in node.old_ids])
+
+        #choose random cluster c
+        c = random.choice(l)
+        added_clusters = list()
+        added_clusters.append(c)
+
+        #create list with #edges to the cluster
+        edge_count = Counter()
+
+        while True:
+            del edge_count[c] # stops the code from adding the same cluster twice
+
+            for u in nodes[c]:
+                for n in g.neighbors(u):
+                    # should run in O(1)
+                    # finds the cluster that n is in and incerments its edge count
+                    for cluster in l:
+                        if cluster in added_clusters: # assumes that len(l) is small
+                            continue
+
+                        if n in nodes[cluster]:
+                            edge_count[cluster] += 1
+                            break
+
+            c = edge_count.most_common(1)[0][0] # list of tuples
+            added_clusters.append(c)
+            if len(added_clusters) >= len(l):
+                break
+
+        return added_clusters
+
+    return connected_random_reorder
+
+
 
 def recursive_PLM_orderings(g, amount_orders):
     if config.TIME_STAMPS >= config.TimeStamps.ALL:
@@ -40,7 +88,7 @@ def recursive_PLM_orderings(g, amount_orders):
 
     root = recursive_PLM(g)
 
-    orderings = get_orderings(root, amount_orders, random_reorder)
+    orderings = get_orderings(root, amount_orders, connected_random_reorder_func(g))
 
     if config.TIME_STAMPS >= config.TimeStamps.ALL:
         after = pd.Timestamp.now()
@@ -282,28 +330,9 @@ def contract_to_nodes(g, disjoint_set, d):
 
     return contracted_g
 
-def get_ordering_from_contractions(list_contractions, reorder):
-    def rec_ordering(layer, index):
-        if layer > 0:
-            ordering = list()
-            for i in reorder(list_contractions[layer][index]):
-                ordering += rec_ordering(layer-1, i)
-
-            return ordering
-        else:
-            return list_contractions[layer][index]
-
-    ordering = rec_ordering(len(list_contractions)-1, 0)
-    return ordering
-
-def random_reorder(l):
-    return random.sample(l, len(l))
-
-def affinity_orderings(g, amount_orders):
+def affinity_tree(g):
     if config.TIME_STAMPS >= config.TimeStamps.ALL:
         i = 0
-        before = pd.Timestamp.now()
-
     set_weights_graph(g)
 
     curr_contraction = find_closest_neighbor_edges(g)
@@ -335,9 +364,16 @@ def affinity_orderings(g, amount_orders):
         if len(dict_contraction) == 1:
             break;
 
-    print(RenderTree(last_iteration[0]))
+    return last_iteration[0]
 
-    orderings = get_orderings(last_iteration[0], amount_orders, random_reorder)
+def affinity_orderings(g, amount_orders):
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        i = 0
+        before = pd.Timestamp.now()
+
+    root = affinity_tree(g)
+
+    orderings = get_orderings(root, amount_orders, connected_random_reorder_func(g))
 
     if config.TIME_STAMPS >= config.TimeStamps.ALL:
         after = pd.Timestamp.now()
@@ -346,3 +382,20 @@ def affinity_orderings(g, amount_orders):
     return orderings
 
 ORD_ALG = dict(zip(config.ORD_TYPE, [recursive_PLM_orderings, affinity_orderings]))
+
+def main():
+    g = load_graph("../affinity/walshaw/uk.graph", nk.graphio.METISGraphReader())
+
+    # Test to check for not connected graphs. Remove for more performance
+    comp = nk.components.ConnectedComponents(g)
+    comp.run()
+    if comp.numberOfComponents() > 1:
+        return
+
+    root = affinity_tree(g)
+
+    orders = get_orderings(root, 3, connected_random_reorder_func(g))
+
+
+if __name__ == "__main__":
+    main()
