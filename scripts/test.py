@@ -1,4 +1,4 @@
-import subprocess, affinity_order, math, io, config, sys
+import subprocess, orderings, math, io, config, sys
 import pandas as pd
 from os import scandir
 
@@ -11,7 +11,8 @@ def main():
 
     ord_rep = sys.argv[1]
 
-    calculate_all_orders(affinity_order.ORD_ALG[sys.argv[1]], ord_rep)
+    calculate_all_orders(orderings.ORD_ALG[sys.argv[1]], ord_rep)
+
 
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
@@ -97,8 +98,10 @@ def calculate_all_orders(ordering_alg, ord_rep):
             if config.TIME_STAMPS >= config.TimeStamps.SOME:
                 entry_start = pd.Timestamp.now()
 
+            print(entry.name)
+
             name = strip_ext(entry.name, config.GRAPH_EXT)
-            affinity_order.calculate_and_save_order(get_graph_path(name), get_ord_path(name, ord_rep), ordering_alg, config.AMOUNT_ORDERS)
+            orderings.calculate_and_save_order(get_graph_path(name), get_ord_path(name, ord_rep), ordering_alg, config.AMOUNT_ORDERS)
 
             if config.TIME_STAMPS >= config.TimeStamps.SOME:
                 entry_end = pd.Timestamp.now()
