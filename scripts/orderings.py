@@ -198,12 +198,45 @@ def affinity_orderings(g, amount_orderings):
     return orderings
 
 
+
+# -------------  Position based orderings -------------------
+
+def generate_random_coefficients(amount, dim):
+    '''
+    Generates a two dimensional list with a length of amount and each sublist has the length dim.
+    Each entry is a random coefficient in [-1,1].
+    '''
+
+    ret = list()
+    for i in range(amount):
+        coefficients = list()
+        for d in range(dim):
+            coefficients.append(random.uniform(-1,1))
+
+        ret.append(coefficients)
+
+    return ret
+
 def algebraic_distance_orderings(g, amount_orderings):
     '''
-    Takes a graph and returns an ordering based on algebraic distances.
+    Takes a graph and an amount_orderings. Returns a list of orderings based on mappings to pseudo random lines of the algebraic distances.
+    This list has the length amount_orderings.
     '''
-    # TODO implement correctly when algebraic distances are more promising
-    raise NotImplementedError("Might be implemented when it looks more promising")
+
+    random.seed(config.SEED)
+    coefficients = generate_random_coefficients(amount_orderings, config.ALG_DIST_SYSTEMS)
+    return algebraic_distances.algebraic_distance_orderings(g, coefficients)
+
+
+def force_atlas_2_orderings(g, amount_orderings):
+    '''
+    Takes a graph and an amount_orderings. Returns a list of orderings based on mappings to pseudo random lines of the force atlas 2 positions.
+    This list has the length amount_orderings.
+    '''
+
+    random.seed(config.SEED)
+    coefficients = generate_random_coefficients(amount_orderings, 2)
+    return algebraic_distances.force_atlas_2_orderings(g, coefficients)
 
 # Stuck at the end because of parse order...
-ORD_ALG = dict(zip(config.ORD_TYPE, [recursive_PLM_orderings, affinity_orderings]))
+ORD_ALG = dict(zip(config.ORD_TYPE, [recursive_PLM_orderings, affinity_orderings, algebraic_distance_orderings, force_atlas_2_orderings]))

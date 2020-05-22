@@ -21,13 +21,18 @@ ORD_SUB = "orders/"
 ORD_DIR = PATH + ORD_SUB
 ORD_EXT = ".ord"
 
-AMOUNT_ORDERS = 3
-EPSILONS = [0.0, 0.01, 0.03, 0.05]
-SEED = 31415
-TIME_STAMPS = TimeStamps.SPARSE
-
-ORD_TYPE = {"plm":"-PLM", "affinity":"-aff"}
-
 DELIMITER_NODE = ","
 DELIMITER_ORDER = "\n"
+
+AMOUNT_ORDERS = 3
+SEED = 31415
+
 PLM_RESOLUTION = 0.01
+FORCEATLAS2_ITER = 20
+ALG_DIST_SYSTEMS = 10
+
+TIME_STAMPS = TimeStamps.SPARSE
+
+ORD_TYPE = {"plm":"-PLM", "affinity":"-aff", "alg_dist":"-alg_dist", "fa2":"-fa2"}
+
+EPSILONS = [0.0, 0.01, 0.03, 0.05]

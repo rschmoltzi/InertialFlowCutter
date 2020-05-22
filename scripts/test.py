@@ -8,7 +8,7 @@ def main():
     Starts the IFC tests for one specified ordering algorithm. The graphs that will be cut must be in the directory
     specified in config.py and must be in the METIS format.
     '''
-    
+
     if len(sys.argv) != 2:
         raise AttributeError("You must specify exactly one ordering algorithm.")
     if sys.argv[1] not in config.ORD_TYPE:
@@ -102,8 +102,6 @@ def calculate_all_orders(ordering_alg, ord_rep):
         if entry.name.endswith(config.GRAPH_EXT):
             if config.TIME_STAMPS >= config.TimeStamps.SOME:
                 entry_start = pd.Timestamp.now()
-
-            print(entry.name)
 
             name = strip_ext(entry.name, config.GRAPH_EXT)
             orderings.calculate_and_save_order(get_graph_path(name), get_ord_path(name, ord_rep), ordering_alg, config.AMOUNT_ORDERS)
