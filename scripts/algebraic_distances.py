@@ -4,7 +4,7 @@ import networkit as nk
 def map_to_line(points, coefficients):
     '''
     Maps points to a line. The amount of dimensions is implicitly given by the length of coefficients.
-    Points is a list where [i:i+len(coefficients)] are the coordinates of the point i.
+    Points is a list where [i*len(coefficients):(i+1)len(coefficients)] are the coordinates of the point i.
     '''
 
     res = list()

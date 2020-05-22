@@ -4,6 +4,11 @@ from os import scandir
 
 
 def main():
+    '''
+    Starts the IFC tests for one specified ordering algorithm. The graphs that will be cut must be in the directory
+    specified in config.py and must be in the METIS format.
+    '''
+    
     if len(sys.argv) != 2:
         raise AttributeError("You must specify exactly one ordering algorithm.")
     if sys.argv[1] not in config.ORD_TYPE:
