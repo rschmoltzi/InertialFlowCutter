@@ -16,7 +16,7 @@ def main():
 
     ord_rep = sys.argv[1]
 
-    calculate_all_orders(orderings.ORD_ALG[sys.argv[1]], ord_rep)
+    calculate_all_orders(orderings.ORD_ALG[ord_rep], ord_rep)
 
 
     pd.set_option('display.max_rows', None)
@@ -58,6 +58,9 @@ def fit_row_in_summary_epsilons(summary_row, row):
                 summary_row[get_eps_label(cmp_eps)] = row["cut_size"]
 
 def summarize_data(data):
+    '''
+    Creates a pd.DataFrame with the graphs as rows and the epsilons and the time as columns.
+    '''
     col = list(map(get_eps_label, config.EPSILONS))
     col.append("Time IFC")
     summary = pd.DataFrame(index=sorted(data), columns=col)
@@ -68,7 +71,12 @@ def summarize_data(data):
 
     return summary
 
+
+
 def enum_cuts_all(ord_rep):
+    '''
+    Enumerates the cuts for all graph orderings in config.ORD_DIR. Fails if there is no graph with the same name in config.GRAPH_DIR.
+    '''
     if config.TIME_STAMPS >= config.TimeStamps.SPARSE:
         before = pd.Timestamp.now()
 
@@ -139,7 +147,15 @@ def args_enum_cuts(name, ord_rep):
 
     args.append("flow_cutter_set")
     args.append("max_cut_size")
-    args.append("1000000") # default:1000 m14b:4000
+    args.append("1000000") # default is 1000 but wont produce cuts on denser graphs
+
+    args.append("flow_cutter_set")
+    args.append("initial_assimilated_fraction")
+    args.append(str(config.INITIAL_ASSIM)) # default 0.05
+
+    args.append("flow_cutter_set")
+    args.append("bulk_step_fraction")
+    args.append(str(config.BULK_STEP))
 
     args.append("flow_cutter_accelerated_enum_cuts_from_orders")
     args.append("-")

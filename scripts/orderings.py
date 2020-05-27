@@ -27,6 +27,9 @@ def load_graph(path_to_graph, reader=nk.graphio.METISGraphReader()):
     return g
 
 def calculate_and_save_order(path_to_graph, path_to_ord, ordering_alg, amount_orders, reader=nk.graphio.METISGraphReader()):
+    '''
+    Calculates the orders for the given graph and saves them in the specified directory.
+    '''
     g = load_graph(path_to_graph, reader)
 
     # Test to check for not connected graphs. Remove for more performance
@@ -36,6 +39,7 @@ def calculate_and_save_order(path_to_graph, path_to_ord, ordering_alg, amount_or
         return
 
     orders = ordering_alg(g, amount_orders)
+
     with open(path_to_ord, "w") as f:
         f.write(config.DELIMITER_ORDER.join(config.DELIMITER_NODE.join(str(i) for i in order) for order in orders))
 
@@ -198,6 +202,25 @@ def affinity_orderings(g, amount_orderings):
     return orderings
 
 
+def accumulated_contraction_orderings(g, amount_orderings):
+    '''
+    Takes a graph and an amount_orderings. Returns a list of orderings. One half are plm orderings, the other
+    affinity orderings. This list has the length amount_orderings.
+    '''
+
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        i = 0
+        before = pd.Timestamp.now()
+
+    orderings = affinity_orderings(g, amount_orderings-(amount_orderings//2))
+    orderings += recursive_PLM_orderings(g, amount_orderings//2)
+
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        after = pd.Timestamp.now()
+        print("Total time: {:f}s".format((after-before).total_seconds()))
+
+    return orderings
+
 
 # -------------  Position based orderings -------------------
 
@@ -239,4 +262,4 @@ def force_atlas_2_orderings(g, amount_orderings):
     return algebraic_distances.force_atlas_2_orderings(g, coefficients)
 
 # Stuck at the end because of parse order...
-ORD_ALG = dict(zip(config.ORD_TYPE, [recursive_PLM_orderings, affinity_orderings, algebraic_distance_orderings, force_atlas_2_orderings]))
+ORD_ALG = dict(zip(config.ORD_TYPE, [recursive_PLM_orderings, affinity_orderings, algebraic_distance_orderings, force_atlas_2_orderings, accumulated_contraction_orderings]))
