@@ -1903,9 +1903,9 @@ namespace flow_cutter_accelerated{
 		const flow_cutter::Config& config;
 	};
 
-	class AffinityCutterFactory {
+	class OrderedCutterFactory {
 	public:
-        explicit AffinityCutterFactory(const flow_cutter::Config& config) : config(config) {}
+        explicit OrderedCutterFactory(const flow_cutter::Config& config) : config(config) {}
 
         template<class Graph>
         SimpleCutter<Graph> operator()(const Graph& graph) {
@@ -1922,6 +1922,43 @@ namespace flow_cutter_accelerated{
 
 	private:
 	    const flow_cutter::Config& config;
+	};
+
+	class OrderedCCHCutterFactory {
+	public:
+	    explicit OrderedCCHCutterFactory(const flow_cutter::Config& config) : config(config) {}
+
+        template<class Graph>
+        SimpleCutter<Graph> operator()(const Graph& graph) {
+            return SimpleCutter<Graph>(graph, config);
+        }
+
+        template <typename GeoPos>
+        MultiCutter::TerminalInformation select_source_target_pairs(int node_count, GeoPos &node_geo_pos, int /*cutter_count*/, int /*seed*/) {
+            MultiCutter::TerminalInformation res;
+            std::vector<std::vector<int>> orderings;
+            int amount_nodes = node_geo_pos.node_coordinates.size() / node_geo_pos.num_coordinates;
+            for (int i = 0; i < node_geo_pos.num_coordinates; i++) {
+                orderings.push_back(std::vector<int>(amount_nodes));
+            }
+
+            // builds ordering[ord][pos] == node
+            for (int i = 0; i < amount_nodes; i++) {
+                auto coordinates = node_geo_pos(i);
+                for (int ord = 0; ord < node_geo_pos.num_coordinates; ord++) {
+                    orderings[ord][*(coordinates + ord)] = i;
+                }
+            }
+
+            for (size_t i = 0; i < orderings.size(); i++) {
+                res.push_back({std::move(orderings[i]), false, {-1, -1}, static_cast<int>(i)});
+            }
+            return res;
+        }
+
+    private:
+        const flow_cutter::Config& config;
+
 	};
 
 	inline

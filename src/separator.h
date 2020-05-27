@@ -51,7 +51,7 @@ namespace flow_cutter{
 					int best_flow_intensity = std::numeric_limits<int>::max();
 					int best_cutter_id = std::numeric_limits<int>::max();
 
-					auto expanded_geo_pos = id_func(expanded_graph.node_count(), [&](int x) -> GeoPos {return adapted_geo_pos(expanded_graph::expanded_node_to_original_node(x));});
+					auto expanded_geo_pos = id_func(expanded_graph.node_count(), [&](int x) -> decltype(geo_pos(0)) {return adapted_geo_pos(expanded_graph::expanded_node_to_original_node(x));});
 					cutter.init(expanded_graph::expand_source_target_pair_list(std::move(pairs)), config.random_seed, expanded_geo_pos);
 
 					tbb::spin_mutex current_cut_mutex;
@@ -232,7 +232,7 @@ namespace flow_cutter{
 					auto cutter = factory(expanded_graph);
 					auto pairs = factory.select_source_target_pairs(node_count, adapted_geo_pos, config.cutter_count, config.random_seed);
 
-					auto expanded_geo_pos = id_func(expanded_graph.node_count(), [&](int x) -> GeoPos {return adapted_geo_pos(expanded_graph::expanded_node_to_original_node(x));});
+					auto expanded_geo_pos = id_func(expanded_graph.node_count(), [&](int x) -> decltype(geo_pos(0)) {return adapted_geo_pos(expanded_graph::expanded_node_to_original_node(x));});
 					cutter.init(expanded_graph::expand_source_target_pair_list(pairs), config.random_seed, expanded_geo_pos);
 
 					int best_small_side_size = 0;

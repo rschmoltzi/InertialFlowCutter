@@ -52,6 +52,25 @@ ArrayIDIDFunc node_original_position;
 
 vector<vector<int>> node_orders;
 
+std::vector<int> node_coordinates; // [i * dimensions, (i+1)*dimensions]
+
+struct NodePosition {
+    std::vector<int>::const_iterator begin;
+    std::vector<int>::const_iterator end;
+};
+
+struct GetPosition {
+    const std::vector<int>& node_coordinates;
+    int num_coordinates;
+
+    GetPosition(const std::vector<int> &node_coordinates)
+            : node_coordinates(node_coordinates) {}
+
+    NodePosition operator()(int id){
+        return NodePosition{node_coordinates.begin() + id * num_coordinates, node_coordinates.begin() + (id + 1) * num_coordinates};
+    };
+};
+
 void check_graph_consitency(){ //TODO
 	#ifndef NDEBUG
 	const int node_count = tail.image_count(), arc_count = tail.preimage_count();
@@ -3020,7 +3039,7 @@ vector<Command>cmd = {
 
                             auto start_time = get_micro_time();
 
-                            flow_cutter_accelerated::AffinityCutterFactory factory(flow_cutter_config);
+                            flow_cutter_accelerated::OrderedCutterFactory factory(flow_cutter_config);
                             auto cutter = factory(graph);
 
                             auto terminal_info = factory.select_source_target_pairs(node_orders);
@@ -3067,6 +3086,30 @@ vector<Command>cmd = {
                                     true);
                         }
                 );
+            }
+    },
+    {
+            "reorder_nodes_in_accelerated_flow_cutter_cch_order_from_orderings",
+            "Reorders all nodes in nested dissection order using flow_cutter accelerated and loaded orderings.",
+            []{
+                if(!is_symmetric(tail, head))
+                    throw runtime_error("Graph must be symmetric");
+                if(has_multi_arcs(tail, head))
+                    throw runtime_error("Graph must not have multi arcs");
+                if(!is_loop_free(tail, head))
+                    throw runtime_error("Graph must not have loops");
+
+                ArrayIDIDFunc order;
+
+
+                //omp_set_nested(true);
+                //#pragma omp parallel num_threads(flow_cutter_config.thread_count)
+                //#pragma omp single nowait
+                {
+                    tbb::task_scheduler_init scheduler(flow_cutter_config.thread_count);
+                    order = cch_order::compute_cch_graph_order(tail, head, arc_weight, flow_cutter::ComputeSeparator<flow_cutter_accelerated::OrderedCCHCutterFactory, GetPosition>(node_coordinates, flow_cutter_config));
+                }
+                permutate_nodes(order);
             }
     }
 };
