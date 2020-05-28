@@ -2956,8 +2956,8 @@ vector<Command>cmd = {
 },
 
 {
-	"load_node_orders", 1,
-	"Loads the node orders from the specified file.",
+	"load_node_orderings", 1,
+	"Loads the node orderings from the specified file.",
 	[](vector<string> arg) {
         ifstream f_orders(arg[0]);
         if (f_orders.is_open()) {
@@ -2979,6 +2979,37 @@ vector<Command>cmd = {
 	}
 
 },
+    {
+            "load_node_orderings_cch", 1,
+            "Loads the node orderings from the specified file. Use this load operation for cch methods.",
+            [](vector<string> arg) {
+                ifstream f_orders(arg[0]);
+                if (f_orders.is_open()) {
+                    string s_order;
+                    string item;
+                    vector<vector<int>> new_orders;
+                    while (getline(f_orders, s_order, '\n')) {
+                        vector<int> v_order;
+                        auto str_stream = istringstream(s_order);
+                        while (getline(str_stream, item, ',')) {
+                            v_order.push_back(stoi(item));
+                        }
+                        new_orders.push_back(move(v_order));
+                    }
+
+                    node_coordinates.clear();
+                    for (int node = 0; node < static_cast<int>(new_orders[0].size()); node++) {
+                        for (int ord = 0; ord < static_cast<int>(new_orders.size()); ord++) {
+                            node_coordinates.push_back(new_orders[ord][node]);
+                        }
+                    }
+                } else {
+                    cout << "File not found." << endl;
+                }
+            }
+
+    },
+
     {
             "flow_cutter_accelerated_enum_cuts_from_orders", 1,
             "Enumerates balanced cuts. Uses preloaded orders.",
