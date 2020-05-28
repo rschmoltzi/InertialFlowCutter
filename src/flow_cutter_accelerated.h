@@ -1937,16 +1937,18 @@ namespace flow_cutter_accelerated{
         MultiCutter::TerminalInformation select_source_target_pairs(int node_count, GeoPos &node_geo_pos, int /*cutter_count*/, int /*seed*/) {
             MultiCutter::TerminalInformation res;
             std::vector<std::vector<int>> orderings;
-            int amount_nodes = node_geo_pos.node_coordinates.size() / node_geo_pos.num_coordinates;
-            for (int i = 0; i < node_geo_pos.num_coordinates; i++) {
-                orderings.push_back(std::vector<int>(amount_nodes));
+
+            // pretty ugly rn
+            int num_coordinates = std::distance(node_geo_pos(0).begin, node_geo_pos(0).end);
+            for (int i = 0; i < num_coordinates; i++) {
+                orderings.push_back(std::vector<int>(node_count));
             }
 
             // builds ordering[ord][pos] == node
-            for (int i = 0; i < amount_nodes; i++) {
+            for (int i = 0; i < node_count; i++) {
                 auto coordinates = node_geo_pos(i);
-                for (int ord = 0; ord < node_geo_pos.num_coordinates; ord++) {
-                    orderings[ord][*(coordinates + ord)] = i;
+                for (int ord = 0; coordinates.begin + ord < coordinates.end; ord++) {
+                    orderings[ord][*(coordinates.begin + ord)] = i;
                 }
             }
 

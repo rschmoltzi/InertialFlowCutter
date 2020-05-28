@@ -66,7 +66,7 @@ struct GetPosition {
     GetPosition(const std::vector<int> &node_coordinates)
             : node_coordinates(node_coordinates) {}
 
-    NodePosition operator()(int id){
+    const NodePosition operator()(int id) const {
         return NodePosition{node_coordinates.begin() + id * num_coordinates, node_coordinates.begin() + (id + 1) * num_coordinates};
     };
 };
