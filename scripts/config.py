@@ -18,14 +18,15 @@ GRAPH_EXT = ".graph"
 ORD_SUB = "orders/"
 ORD_DIR = PATH + ORD_SUB
 ORD_EXT = ".ord"
-ORD_TYPE = {"plm":"-PLM", "affinity":"-aff", "alg_dist":"-alg_dist", "fa2":"-fa2", "accumulated":"-acc"}
+ORD_TYPE = {"affinity":"-aff", "plm":"-plm", "alg_dist":"-alg_dist", "fa2":"-fa2", "accumulated":"-acc", "asc_affinity":"-asc-aff", "asc_plm":"-asc-plm",
+    "asc_accumulated":"-asc-acc"}
 
 DELIMITER_NODE = ","
 DELIMITER_ORDER = "\n"
 
 
 # Test parameters
-AMOUNT_ORDERS = 6
+AMOUNT_ORDERINGS = 3
 SEED = 31415
 INITIAL_ASSIM = 0.05 # default: 0.05
 BULK_STEP = 0.05 # default: 0.05

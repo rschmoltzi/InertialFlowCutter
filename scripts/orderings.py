@@ -102,6 +102,81 @@ def get_orderings(root, n, reorder=None, reorders=None):
 
     return ret
 
+def increment_edge_count(node):
+    '''
+    Increments the count attribute of the given Node and all its ancestors.
+    '''
+    current_node = node
+    while True:
+        current_node.count += 1
+        if current_node.is_root:
+            break
+        current_node = current_node.parent
+
+
+def rec_reorder_llc_with_common_parent(g, parent, node_to_llc):
+    '''
+    Reorders all children of the given node. It selects the child with the highest edge count to the already visited nodes.
+    If the child is a leaf, its neighbor edges will be counted and added to the rest. Otherwise it will recursively call
+    itself with the current node as new parent.
+    '''
+
+    llc = list(parent.children)
+    ret = list()
+    while llc:
+        current_node = max(llc, key=lambda node: node.count)
+        if current_node.is_leaf:
+            for u in current_node.old_ids:
+                for n in g.neighbors(u):
+                    increment_edge_count(node_to_llc[n])
+
+            ret.append(current_node)
+        else:
+            ret += rec_reorder_llc_with_common_parent(g, current_node, node_to_llc)
+
+        llc.remove(current_node)
+
+    return ret
+
+
+def ascending_connected_random_orderings(g, root, n):
+    '''
+    Pseudo randomly reorders a list of clusters based on their connectivity in g.
+    Starts with a random DFS until reaching the lowest level. Then adds clusters based on their connectivity.
+    '''
+
+    random.seed(config.SEED)
+
+    node_to_llc = dict() # map from node to lowest level cluster
+    for cluster in root.leaves:
+        for node in cluster.old_ids:
+            node_to_llc[node] = cluster
+
+    # the count represents how many edges reach this cluster.
+    # will be updated throughout the tree
+    ret = list()
+
+    for i in range(n):
+        for node in PreOrderIter(root):
+            node.count = 0
+            #node.visited = False
+
+        current_node = root
+        while not current_node.is_leaf:
+            current_node = random.choice(current_node.children)
+
+        increment_edge_count(current_node)
+
+        ret.append([old_id for node in rec_reorder_llc_with_common_parent(g, root, node_to_llc) for old_id in node.old_ids])
+
+    for node in PreOrderIter(root):
+        del node.count
+        # del node.visited
+
+    return ret
+
+
+
 def random_reorder(l):
     return random.sample(l, len(l))
 
@@ -111,7 +186,7 @@ def id(l):
 # Returns a function that realizes a randomized-connected reordering on the given graph g
 def connected_random_reorder_func(g):
     '''
-    Wrapper function used to put g in the namespace of the returned functino without changing its signature.
+    Wrapper function used to put g in the namespace of the returned function without changing its signature.
     Returns a function that pseudo randomly reorders a list of clusters based on their connectivity in g.
     '''
 
@@ -120,18 +195,24 @@ def connected_random_reorder_func(g):
             return l
 
         nodes = dict()
-        for cluster in l:
-            nodes[cluster] = set([node_id for node in PreOrderIter(cluster) if node.is_leaf for node_id in node.old_ids])
 
         # inverse map
-        # for c in nodes:
-        #     for u in
+        node_to_cluster = dict()
+        for cluster in l:
+            cluster_to_nodes = set()
+            for node in PreOrderIter(cluster):
+                if node.is_leaf:
+                    for node_id in node.old_ids:
+                        node_to_cluster[node_id] = cluster
+                        cluster_to_nodes.add(node_id)
+
+            nodes[cluster] = cluster_to_nodes
 
         #choose random cluster c
         c = random.choice(l)
         # ordered dict
-        added_clusters = list()
-        added_clusters.append(c)
+        added_clusters = dict()
+        added_clusters[c] = None
 
         #create list with #edges to the cluster
         edge_count = Counter()
@@ -141,44 +222,17 @@ def connected_random_reorder_func(g):
 
             for u in nodes[c]:
                 for n in g.neighbors(u):
-                    # Tidy this up with inverse map
-                    # finds the cluster that n is in and incerments its edge count
-                    for cluster in l:
-                        if cluster in added_clusters: # assumes that len(l) is small
-                            continue
-
-                        if n in nodes[cluster]:
-                            edge_count[cluster] += 1
-                            break
+                    if n in node_to_cluster and node_to_cluster[n] not in added_clusters:
+                        edge_count[node_to_cluster[n]] += 1
 
             c = edge_count.most_common(1)[0][0] # list of tuples
-            added_clusters.append(c)
+            added_clusters[c] = None
             if len(added_clusters) >= len(l):
                 break
 
-        return added_clusters
+        return list(added_clusters.keys())
 
     return connected_random_reorder
-
-def recursive_PLM_orderings(g, amount_orderings):
-    '''
-    Takes a graph and an amount_orderings. Returns a list of orderings based on recursive application of PLM.
-    This list has the length amount_orderings.
-    '''
-
-    if config.TIME_STAMPS >= config.TimeStamps.ALL:
-        i = 0
-        before = pd.Timestamp.now()
-
-    root = contraction_trees.recursive_PLM(g)
-
-    orderings = get_orderings(root, amount_orderings, connected_random_reorder_func(g))
-
-    if config.TIME_STAMPS >= config.TimeStamps.ALL:
-        after = pd.Timestamp.now()
-        print("Total time: {:f}s".format((after-before).total_seconds()))
-
-    return orderings
 
 
 def affinity_orderings(g, amount_orderings):
@@ -192,6 +246,27 @@ def affinity_orderings(g, amount_orderings):
         before = pd.Timestamp.now()
 
     root = contraction_trees.affinity_tree(g)
+
+    orderings = get_orderings(root, amount_orderings, connected_random_reorder_func(g))
+
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        after = pd.Timestamp.now()
+        print("Total time: {:f}s".format((after-before).total_seconds()))
+
+    return orderings
+
+
+def recursive_PLM_orderings(g, amount_orderings):
+    '''
+    Takes a graph and an amount_orderings. Returns a list of orderings based on recursive application of PLM.
+    This list has the length amount_orderings.
+    '''
+
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        i = 0
+        before = pd.Timestamp.now()
+
+    root = contraction_trees.recursive_PLM(g)
 
     orderings = get_orderings(root, amount_orderings, connected_random_reorder_func(g))
 
@@ -221,6 +296,65 @@ def accumulated_contraction_orderings(g, amount_orderings):
 
     return orderings
 
+
+def ascending_affinity_orderings(g, amount_orderings):
+    '''
+    Takes a graph and an amount_orderings. Returns a list of orderings based on the affinity contraction tree.
+    This list has the length amount_orderings. Reorders the leaves with a connectivity-based pseudorandom DFS.
+    '''
+
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        i = 0
+        before = pd.Timestamp.now()
+
+    root = contraction_trees.affinity_tree(g)
+    orderings = ascending_connected_random_orderings(g, root, amount_orderings)
+
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        after = pd.Timestamp.now()
+        print("Total time: {:f}s".format((after-before).total_seconds()))
+
+    return orderings
+
+
+def ascending_recursive_PLM_orderings(g, amount_orderings):
+    '''
+    Takes a graph and an amount_orderings. Returns a list of orderings based on recursive application of PLM.
+    This list has the length amount_orderings. Reorders the leaves with a connectivity-based pseudorandom DFS.
+    '''
+
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        i = 0
+        before = pd.Timestamp.now()
+
+    root = contraction_trees.recursive_PLM(g)
+    orderings = ascending_connected_random_orderings(g, root, amount_orderings)
+
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        after = pd.Timestamp.now()
+        print("Total time: {:f}s".format((after-before).total_seconds()))
+
+    return orderings
+
+
+def ascending_accumulated_contraction_orderings(g, amount_orderings):
+    '''
+    Takes a graph and an amount_orderings. Returns a list of orderings. One half are plm orderings, the other
+    affinity orderings. This list has the length amount_orderings. Reorders the leaves with a connectivity-based pseudorandom DFS.
+    '''
+
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        i = 0
+        before = pd.Timestamp.now()
+
+    orderings = ascending_affinity_orderings(g, amount_orderings-(amount_orderings//2))
+    orderings += ascending_recursive_PLM_orderings(g, amount_orderings//2)
+
+    if config.TIME_STAMPS >= config.TimeStamps.ALL:
+        after = pd.Timestamp.now()
+        print("Total time: {:f}s".format((after-before).total_seconds()))
+
+    return orderings
 
 # -------------  Position based orderings -------------------
 
@@ -262,4 +396,4 @@ def force_atlas_2_orderings(g, amount_orderings):
     return algebraic_distances.force_atlas_2_orderings(g, coefficients)
 
 # Stuck at the end because of parse order...
-ORD_ALG = dict(zip(config.ORD_TYPE, [recursive_PLM_orderings, affinity_orderings, algebraic_distance_orderings, force_atlas_2_orderings, accumulated_contraction_orderings]))
+ORD_ALG = dict(zip(config.ORD_TYPE, [affinity_orderings, recursive_PLM_orderings, algebraic_distance_orderings, force_atlas_2_orderings, accumulated_contraction_orderings, ascending_affinity_orderings, ascending_recursive_PLM_orderings, ascending_accumulated_contraction_orderings]))

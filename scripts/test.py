@@ -5,11 +5,15 @@ from os import scandir
 
 def main():
     '''
-    Starts the IFC tests for one specified ordering algorithm. The graphs that will be cut must be in the directory
+    Starts the IFC enum_cuts tests for one specified ordering algorithm. The graphs that will be cut must be in the directory
     specified in config.py and must be in the METIS format.
+
+    Run it like this: python3 -B ordering_alg [amount_orderings]
     '''
 
-    if len(sys.argv) != 2:
+    if len(sys.argv) == 3 and sys.argv[2].isdigit():
+        config.AMOUNT_ORDERINGS = int(sys.argv[2])
+    elif len(sys.argv) != 2:
         raise AttributeError("You must specify exactly one ordering algorithm.")
     if sys.argv[1] not in config.ORD_TYPE:
         raise ValueError("The given argument does not represent an ordering algorithm")
@@ -112,7 +116,7 @@ def calculate_all_orders(ordering_alg, ord_rep):
                 entry_start = pd.Timestamp.now()
 
             name = strip_ext(entry.name, config.GRAPH_EXT)
-            orderings.calculate_and_save_order(get_graph_path(name), get_ord_path(name, ord_rep), ordering_alg, config.AMOUNT_ORDERS)
+            orderings.calculate_and_save_order(get_graph_path(name), get_ord_path(name, ord_rep), ordering_alg, config.AMOUNT_ORDERINGS)
 
             if config.TIME_STAMPS >= config.TimeStamps.SOME:
                 entry_end = pd.Timestamp.now()
@@ -122,13 +126,25 @@ def calculate_all_orders(ordering_alg, ord_rep):
         after = pd.Timestamp.now()
         print("Calculating orders: {:f}s".format((after-before).total_seconds()))
 
+#
+# def time_function(function, verbosity, output_string):
+#     def timed_function():
+#         if config.TIME_STAMPS >= verbosity:
+#             before = pd.Timestamp.now()
+#
+#
+#         if config.TIME_STAMPS >= verbosity:
+#             after = pd.Timestamp.now()
+#             print("Calculating orders: {:f}s".format((after-before).total_seconds()))
+
+
 def args_enum_cuts(name, ord_rep):
     args = [config.CONSOLE]
 
     args.append("load_metis_graph")
     args.append(get_graph_path(name))
 
-    args.append("load_node_orderings")
+    args.append("load_node_orders") # TODO change to orderings once IFC works again and is recompiled as release
     args.append(get_ord_path(name, ord_rep))
 
     args.append("add_back_arcs")
