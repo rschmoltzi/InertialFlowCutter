@@ -173,7 +173,7 @@ def args_enum_cuts(name, ord_rep):
     args.append("bulk_step_fraction")
     args.append(str(config.BULK_STEP))
 
-    args.append("flow_cutter_accelerated_enum_cuts_from_orders")
+    args.append("flow_cutter_accelerated_enum_cuts_from_orderings")
     args.append("-")
 
     return args
