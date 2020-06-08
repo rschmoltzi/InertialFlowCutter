@@ -1945,14 +1945,7 @@ namespace flow_cutter_accelerated{
             int num_coordinates = std::distance(node_geo_pos(0).begin, node_geo_pos(0).end);
             for (int i = 0; i < num_coordinates; i++) {
                 orderings.push_back(std::vector<int>(node_count));
-            }
-
-            // builds ordering[ord][pos] == node
-            for (int i = 0; i < node_count; i++) {
-                auto coordinates = node_geo_pos(i);
-                for (int ord = 0; coordinates.begin + ord < coordinates.end; ord++) {
-                    orderings[ord].push_back(i);
-                }
+                std::iota(orderings.back().begin(), orderings.back().end(), 0);
             }
 
             for (int i = 0; i < static_cast<int>(orderings.size()); i++) {
