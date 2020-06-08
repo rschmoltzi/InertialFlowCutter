@@ -144,7 +144,7 @@ def args_enum_cuts(name, ord_rep):
     args.append("load_metis_graph")
     args.append(get_graph_path(name))
 
-    args.append("load_node_orders") # TODO change to orderings once IFC works again and is recompiled as release
+    args.append("load_node_orderings")
     args.append(get_ord_path(name, ord_rep))
 
     args.append("add_back_arcs")
