@@ -50,9 +50,11 @@ ArrayIDFunc<GeoPos> node_geo_pos;
 
 ArrayIDIDFunc node_original_position;
 
-vector<vector<int>> node_orders;
+vector<vector<int>> node_orderings;
 
 std::vector<int> node_coordinates; // [i * dimensions, (i+1)*dimensions]
+
+int num_coordinates;
 
 struct NodePosition {
     std::vector<int>::const_iterator begin;
@@ -63,8 +65,8 @@ struct GetPosition {
     const std::vector<int>& node_coordinates;
     int num_coordinates;
 
-    GetPosition(const std::vector<int> &node_coordinates)
-            : node_coordinates(node_coordinates) {}
+    GetPosition(const std::vector<int> &node_coordinates, int num_coordinates)
+            : node_coordinates(node_coordinates), num_coordinates(num_coordinates) {}
 
     const NodePosition operator()(int id) const {
         return NodePosition{node_coordinates.begin() + id * num_coordinates, node_coordinates.begin() + (id + 1) * num_coordinates};
@@ -143,8 +145,8 @@ void permutate_nodes(const ArrayIDIDFunc&p){
 	head = chain(std::move(head), inv_p);
 	tail = chain(std::move(tail), inv_p);
 
-	for (size_t i = 0; i < node_orders.size(); i++) {
-        node_orders[i] = chainList(std::move(node_orders[i]), inv_p);
+	for (size_t i = 0; i < node_orderings.size(); i++) {
+        node_orderings[i] = chainList(std::move(node_orderings[i]), inv_p);
 	}
 
 	node_color = chain(p, std::move(node_color));
@@ -2959,20 +2961,20 @@ vector<Command>cmd = {
 	"load_node_orderings", 1,
 	"Loads the node orderings from the specified file.",
 	[](vector<string> arg) {
-        ifstream f_orders(arg[0]);
-        if (f_orders.is_open()) {
-            string s_order;
+        ifstream f_orderings(arg[0]);
+        if (f_orderings.is_open()) {
+            string s_ordering;
             string item;
-            vector<vector<int>> new_orders;
-            while (getline(f_orders, s_order, '\n')) {
-                vector<int> v_order;
-                auto str_stream = istringstream(s_order);
+            vector<vector<int>> new_orderings;
+            while (getline(f_orderings, s_ordering, '\n')) {
+                vector<int> v_ordering;
+                auto str_stream = istringstream(s_ordering);
                 while (getline(str_stream, item, ',')) {
-                    v_order.push_back(stoi(item));
+                    v_ordering.push_back(stoi(item));
                 }
-                new_orders.push_back(move(v_order));
+                new_orderings.push_back(move(v_ordering));
             }
-            node_orders = move(new_orders);
+            node_orderings = move(new_orderings);
         } else {
             cout << "File not found." << endl;
         }
@@ -2983,24 +2985,26 @@ vector<Command>cmd = {
             "load_node_orderings_cch", 1,
             "Loads the node orderings from the specified file. Use this load operation for cch methods.",
             [](vector<string> arg) {
-                ifstream f_orders(arg[0]);
-                if (f_orders.is_open()) {
-                    string s_order;
+                ifstream f_orderings(arg[0]);
+                if (f_orderings.is_open()) {
+                    string s_ordering;
                     string item;
-                    vector<vector<int>> new_orders;
-                    while (getline(f_orders, s_order, '\n')) {
-                        vector<int> v_order;
-                        auto str_stream = istringstream(s_order);
+                    vector<vector<int>> new_orderings;
+                    while (getline(f_orderings, s_ordering, '\n')) {
+                        vector<int> v_ordering;
+                        auto str_stream = istringstream(s_ordering);
                         while (getline(str_stream, item, ',')) {
-                            v_order.push_back(stoi(item));
+                            v_ordering.push_back(stoi(item));
                         }
-                        new_orders.push_back(move(v_order));
+                        new_orderings.push_back(move(v_ordering));
                     }
 
+                    num_coordinates = static_cast<int>(new_orderings.size());
+
                     node_coordinates.clear();
-                    for (int node = 0; node < static_cast<int>(new_orders[0].size()); node++) {
-                        for (int ord = 0; ord < static_cast<int>(new_orders.size()); ord++) {
-                            node_coordinates.push_back(new_orders[ord][node]);
+                    for (int node = 0; node < static_cast<int>(new_orderings[0].size()); node++) {
+                        for (int ord = 0; ord < static_cast<int>(new_orderings.size()); ord++) {
+                            node_coordinates.push_back(new_orderings[ord][node]);
                         }
                     }
                 } else {
@@ -3011,8 +3015,8 @@ vector<Command>cmd = {
     },
 
     {
-            "flow_cutter_accelerated_enum_cuts_from_orders", 1,
-            "Enumerates balanced cuts. Uses preloaded orders.",
+            "flow_cutter_accelerated_enum_cuts_from_orderings", 1,
+            "Enumerates balanced cuts. Uses preloaded orderings.",
             [](vector<string> args) {
                 int node_count = tail.image_count();
                 int arc_count = tail.preimage_count();
@@ -3073,7 +3077,7 @@ vector<Command>cmd = {
                             flow_cutter_accelerated::OrderedCutterFactory factory(flow_cutter_config);
                             auto cutter = factory(graph);
 
-                            auto terminal_info = factory.select_source_target_pairs(node_orders);
+                            auto terminal_info = factory.select_source_target_pairs(node_orderings);
 
                             cutter.init(std::move(terminal_info), flow_cutter_config.random_seed, node_geo_pos);
 
@@ -3132,13 +3136,10 @@ vector<Command>cmd = {
 
                 ArrayIDIDFunc order;
 
-
-                //omp_set_nested(true);
-                //#pragma omp parallel num_threads(flow_cutter_config.thread_count)
-                //#pragma omp single nowait
                 {
                     tbb::task_scheduler_init scheduler(flow_cutter_config.thread_count);
-                    order = cch_order::compute_cch_graph_order(tail, head, arc_weight, flow_cutter::ComputeSeparator<flow_cutter_accelerated::OrderedCCHCutterFactory, GetPosition>(node_coordinates, flow_cutter_config));
+                    auto get_pos = GetPosition{node_coordinates, num_coordinates};
+                    order = cch_order::compute_cch_graph_order(tail, head, arc_weight, flow_cutter::ComputeSeparator<flow_cutter_accelerated::OrderedCCHCutterFactory, GetPosition>(get_pos, flow_cutter_config));
                 }
                 permutate_nodes(order);
             }

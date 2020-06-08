@@ -1938,6 +1938,9 @@ namespace flow_cutter_accelerated{
             MultiCutter::TerminalInformation res;
             std::vector<std::vector<int>> orderings;
 
+            if (node_geo_pos.preimage_count() == 0)
+                return res;
+
             // pretty ugly rn
             int num_coordinates = std::distance(node_geo_pos(0).begin, node_geo_pos(0).end);
             for (int i = 0; i < num_coordinates; i++) {
@@ -1948,8 +1951,15 @@ namespace flow_cutter_accelerated{
             for (int i = 0; i < node_count; i++) {
                 auto coordinates = node_geo_pos(i);
                 for (int ord = 0; coordinates.begin + ord < coordinates.end; ord++) {
-                    orderings[ord][*(coordinates.begin + ord)] = i;
+                    orderings[ord].push_back(i);
                 }
+            }
+
+            for (int i = 0; i < static_cast<int>(orderings.size()); i++) {
+                std::sort(orderings[i].begin(), orderings[i].end(), [&node_geo_pos, i](const int node1, const int node2)
+                {
+                    return *(node_geo_pos(node1).begin + i) < *(node_geo_pos(node2).begin + i);
+                });
             }
 
             for (size_t i = 0; i < orderings.size(); i++) {
