@@ -210,12 +210,15 @@ def connected_random_reorder_func(g):
 
         #choose random cluster c
         c = random.choice(l)
-        # ordered dict
+        # used as set that preserves insertion order
         added_clusters = dict()
         added_clusters[c] = None
 
         #create list with #edges to the cluster
         edge_count = Counter()
+        # Initialization is needed, since some of the plm clusters seem to be not connected
+        for cluster in l:
+            edge_count[cluster] = 0
 
         while True:
             del edge_count[c] # stops the code from adding the same cluster twice
@@ -266,8 +269,8 @@ def recursive_PLM_orderings(g, amount_orderings):
         i = 0
         before = pd.Timestamp.now()
 
+    nk.setSeed(config.SEED, false)
     root = contraction_trees.recursive_PLM(g)
-
     orderings = get_orderings(root, amount_orderings, connected_random_reorder_func(g))
 
     if config.TIME_STAMPS >= config.TimeStamps.ALL:
@@ -327,6 +330,7 @@ def ascending_recursive_PLM_orderings(g, amount_orderings):
         i = 0
         before = pd.Timestamp.now()
 
+    nk.setSeed(config.SEED, false)
     root = contraction_trees.recursive_PLM(g)
     orderings = ascending_connected_random_orderings(g, root, amount_orderings)
 

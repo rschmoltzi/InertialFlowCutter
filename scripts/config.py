@@ -18,8 +18,11 @@ GRAPH_EXT = ".graph"
 ORD_SUB = "orders/"
 ORD_DIR = PATH + ORD_SUB
 ORD_EXT = ".ord"
-ORD_TYPE = {"affinity":"-aff", "plm":"-plm", "alg_dist":"-alg_dist", "fa2":"-fa2", "accumulated":"-acc", "asc_affinity":"-asc-aff", "asc_plm":"-asc-plm",
-    "asc_accumulated":"-asc-acc"}
+ORD_TYPE_DELIMITER = "-"
+ORDERING_ALG_NAMES = ["affinity", "plm", "alg_dist", "fa2", "accumulated", "asc_affinity", "asc_plm", "asc_accumulated"] # must not contain the ORD_TYPE_DELIMITER
+ORD_TYPE = dict(zip(ORDERING_ALG_NAMES, [ORD_TYPE_DELIMITER + alg for alg in ORDERING_ALG_NAMES]))
+# ORD_TYPE = {"affinity":"-aff", "plm":"-plm", "alg_dist":"-alg_dist", "fa2":"-fa2", "accumulated":"-acc", "asc_affinity":"-asc_aff", "asc_plm":"-asc_plm",
+#     "asc_accumulated":"-asc_acc"}
 
 DELIMITER_NODE = ","
 DELIMITER_ORDER = "\n"
@@ -27,7 +30,7 @@ DELIMITER_ORDER = "\n"
 
 # Test parameters
 AMOUNT_ORDERINGS = 3
-SEED = 31415
+SEED = 31415 # Random seed for python and networkit
 INITIAL_ASSIM = 0.05 # default: 0.05
 BULK_STEP = 0.05 # default: 0.05
 
