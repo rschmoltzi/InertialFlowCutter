@@ -1,6 +1,7 @@
 import subprocess, orderings, math, io, config, sys
 import pandas as pd
-from os import scandir
+from os import scandir, path
+from config import get_graph_path, get_ord_path
 
 
 def main():
@@ -8,7 +9,7 @@ def main():
     Starts the IFC enum_cuts tests for one specified ordering algorithm. The graphs that will be cut must be in the directory
     specified in config.py and must be in the METIS format.
 
-    Run it like this: python3 -B ordering_alg [amount_orderings]
+    Run it like this: python3 -B test.py ordering_alg [amount_orderings]
     '''
 
     if len(sys.argv) == 3 and sys.argv[2].isdigit():
@@ -34,11 +35,6 @@ def main():
     print(ret)
 
 
-def get_graph_path(name):
-    return config.GRAPH_DIR + name + config.GRAPH_EXT
-
-def get_ord_path(name, ord_rep):
-    return config.PATH + config.ORD_SUB + name + config.ORD_TYPE[ord_rep] + config.ORD_EXT
 
 def strip_ext(name, ext):
     if name.endswith(ext):
@@ -86,12 +82,13 @@ def enum_cuts_all(ord_rep):
 
     data = dict()
 
-    for entry in scandir(config.ORD_DIR):
-        if entry.name.endswith(config.ORD_TYPE[ord_rep] + config.ORD_EXT):
+    for entry in scandir(config.GRAPH_DIR):
+        name = strip_ext(entry.name,config.GRAPH_EXT)
+        if path.isfile(config.get_ord_path(name, ord_rep)):
+        # if entry.name.endswith(config.ORD_TYPE[ord_rep] + config.ORD_EXT): # If file with fitting extensions exists in orderings
             if config.TIME_STAMPS >= config.TimeStamps.SOME:
                 entry_start = pd.Timestamp.now()
 
-            name = strip_ext(entry.name, config.ORD_TYPE[ord_rep] + config.ORD_EXT)
             data[name] = run(args_enum_cuts(name, ord_rep))
 
             if config.TIME_STAMPS >= config.TimeStamps.SOME:

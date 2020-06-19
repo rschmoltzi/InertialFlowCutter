@@ -32,7 +32,8 @@ def recursive_PLM(g):
         node = AnyNode(parent=parent)
         part = nk.community.PLM(s, par="none randomized").run().getPartition()
         if part.numberOfSubsets() == 1:
-            AnyNode(parent=node, cluster=list(part.getMembers(0)), old_ids=[old_node_ids[i] for i in part.getMembers(0)])
+            for i in part.getMembers(0):
+                AnyNode(parent=node, node_id=old_node_ids[i])
             return
 
         for n in range(part.numberOfSubsets()):
@@ -40,7 +41,9 @@ def recursive_PLM(g):
             if len(p) > g.numberOfNodes() * config.PLM_RESOLUTION:
                 rec_PLM(subgraph(s, p), node, [old_node_ids[i] for i in p])
             else:
-                AnyNode(parent=node, cluster=list(p), old_ids=[old_node_ids[i] for i in p])
+                cluster = AnyNode(parent=node)
+                for i in p:
+                    AnyNode(parent=cluster, node_id=old_node_ids[i])
 
     root = Node("root")
     rec_PLM(g, root, range(g.numberOfNodes()))
@@ -204,13 +207,9 @@ def affinity_tree(g):
         i = 0
     set_weights_graph(g)
 
-    curr_contraction = find_closest_neighbor_edges(g)
-    dict_contraction = curr_contraction.get()
-    g = contract_to_nodes(g, curr_contraction, dict_contraction)
-
     last_iteration = list()
-    for k, v in dict_contraction.items():
-        last_iteration.append(AnyNode(old_ids=v))
+    for id in range(g.numberOfNodes()):
+        last_iteration.append(AnyNode(node_id=id))
 
     # officially supported python construct for 'do ... while'
     while True:
@@ -223,7 +222,7 @@ def affinity_tree(g):
         g = contract_to_nodes(g, curr_contraction, dict_contraction)
 
         curr_iteration = list()
-        for k, v in dict_contraction.items(): # Should be the order of the contractions
+        for k, v in dict_contraction.items(): # Relies on the dict iterating in the same order as in contract_to_nodes
             n = AnyNode()
             n.children = [last_iteration[i] for i in v]
             curr_iteration.append(n)

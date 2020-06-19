@@ -28,7 +28,7 @@ def load_graph(path_to_graph, reader=nk.graphio.METISGraphReader()):
 
 def calculate_and_save_order(path_to_graph, path_to_ord, ordering_alg, amount_orders, reader=nk.graphio.METISGraphReader()):
     '''
-    Calculates the orders for the given graph and saves them in the specified directory.
+    Calculates the orderings for the given graph and saves them in the specified directory.
     '''
     g = load_graph(path_to_graph, reader)
 
@@ -61,7 +61,7 @@ def get_ordering(root, reorder):
                         yield descendant_
 
     # Creates a flat list containing the ordering. Only leafs have a old_ids attribute
-    ordering = [node_id for node in RandomDFSIter(root) if node.is_leaf for node_id in node.old_ids]
+    ordering = [node.node_id for node in RandomDFSIter(root) if node.is_leaf]
 
     return ordering
 
@@ -114,32 +114,31 @@ def increment_edge_count(node):
         current_node = current_node.parent
 
 
-def rec_reorder_llc_with_common_parent(g, parent, node_to_llc):
+def rec_reorder_clusters_with_common_parent(g, parent, node_to_leaf):
     '''
     Reorders all children of the given node. It selects the child with the highest edge count to the already visited nodes.
     If the child is a leaf, its neighbor edges will be counted and added to the rest. Otherwise it will recursively call
     itself with the current node as new parent.
     '''
 
-    llc = list(parent.children)
+    clusters = list(parent.children)
     ret = list()
-    while llc:
-        current_node = max(llc, key=lambda node: node.count)
+    while clusters:
+        current_node = max(clusters, key=lambda node: node.count)
         if current_node.is_leaf:
-            for u in current_node.old_ids:
-                for n in g.neighbors(u):
-                    increment_edge_count(node_to_llc[n])
+            for n in g.neighbors(current_node.node_id):
+                increment_edge_count(node_to_leaf[n])
 
             ret.append(current_node)
         else:
-            ret += rec_reorder_llc_with_common_parent(g, current_node, node_to_llc)
+            ret += rec_reorder_clusters_with_common_parent(g, current_node, node_to_leaf)
 
-        llc.remove(current_node)
+        clusters.remove(current_node)
 
     return ret
 
 
-def ascending_connected_random_orderings(g, root, n):
+def ascending_connected_random_orderings(g, root, n): # TODO: Increase performance
     '''
     Pseudo randomly reorders a list of clusters based on their connectivity in g.
     Starts with a random DFS until reaching the lowest level. Then adds clusters based on their connectivity.
@@ -147,10 +146,9 @@ def ascending_connected_random_orderings(g, root, n):
 
     random.seed(config.SEED)
 
-    node_to_llc = dict() # map from node to lowest level cluster
-    for cluster in root.leaves:
-        for node in cluster.old_ids:
-            node_to_llc[node] = cluster
+    node_to_leaf = dict() # map from node to leaf
+    for leaf in root.leaves:
+        node_to_leaf[leaf.node_id] = leaf
 
     # the count represents how many edges reach this cluster.
     # will be updated throughout the tree
@@ -159,7 +157,6 @@ def ascending_connected_random_orderings(g, root, n):
     for i in range(n):
         for node in PreOrderIter(root):
             node.count = 0
-            #node.visited = False
 
         current_node = root
         while not current_node.is_leaf:
@@ -167,11 +164,10 @@ def ascending_connected_random_orderings(g, root, n):
 
         increment_edge_count(current_node)
 
-        ret.append([old_id for node in rec_reorder_llc_with_common_parent(g, root, node_to_llc) for old_id in node.old_ids])
+        ret.append([node.node_id for node in rec_reorder_clusters_with_common_parent(g, root, node_to_leaf)])
 
     for node in PreOrderIter(root):
         del node.count
-        # del node.visited
 
     return ret
 
@@ -202,9 +198,8 @@ def connected_random_reorder_func(g):
             cluster_to_nodes = set()
             for node in PreOrderIter(cluster):
                 if node.is_leaf:
-                    for node_id in node.old_ids:
-                        node_to_cluster[node_id] = cluster
-                        cluster_to_nodes.add(node_id)
+                    node_to_cluster[node.node_id] = cluster
+                    cluster_to_nodes.add(node.node_id)
 
             nodes[cluster] = cluster_to_nodes
 
@@ -269,7 +264,7 @@ def recursive_PLM_orderings(g, amount_orderings):
         i = 0
         before = pd.Timestamp.now()
 
-    nk.setSeed(config.SEED, false)
+    nk.setSeed(config.SEED, False)
     root = contraction_trees.recursive_PLM(g)
     orderings = get_orderings(root, amount_orderings, connected_random_reorder_func(g))
 
@@ -330,7 +325,7 @@ def ascending_recursive_PLM_orderings(g, amount_orderings):
         i = 0
         before = pd.Timestamp.now()
 
-    nk.setSeed(config.SEED, false)
+    nk.setSeed(config.SEED, False)
     root = contraction_trees.recursive_PLM(g)
     orderings = ascending_connected_random_orderings(g, root, amount_orderings)
 
