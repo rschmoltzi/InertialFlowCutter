@@ -1935,13 +1935,14 @@ namespace flow_cutter_accelerated{
 
         template <typename GeoPos>
         MultiCutter::TerminalInformation select_source_target_pairs(int node_count, GeoPos &node_geo_pos, int /*cutter_count*/, int /*seed*/) {
+	        // Rebuilds the orderings from the coordinate form given by the geo_pos
+
             MultiCutter::TerminalInformation res;
             std::vector<std::vector<int>> orderings;
 
             if (node_geo_pos.preimage_count() == 0)
                 return res;
 
-            // pretty ugly rn
             int num_coordinates = std::distance(node_geo_pos(0).begin, node_geo_pos(0).end);
             for (int i = 0; i < num_coordinates; i++) {
                 orderings.push_back(std::vector<int>(node_count));

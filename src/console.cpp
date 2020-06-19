@@ -52,7 +52,7 @@ ArrayIDIDFunc node_original_position;
 
 vector<vector<int>> node_orderings;
 
-std::vector<int> node_coordinates; // [i * dimensions, (i+1)*dimensions]
+std::vector<int> node_coordinates; // [i * dimensions, (i+1)*dimensions - 1]
 
 int num_coordinates;
 
@@ -148,6 +148,16 @@ void permutate_nodes(const ArrayIDIDFunc&p){
 	for (size_t i = 0; i < node_orderings.size(); i++) {
         node_orderings[i] = chainList(std::move(node_orderings[i]), inv_p);
 	}
+
+	auto positions = GetPosition(node_coordinates, num_coordinates);
+	std::vector<int> new_node_coordinates;
+	for (int i = 0; i < num_coordinates; i++) {
+	    auto pos = positions(p(i)); //chain
+	    for (auto coordinate = pos.begin; coordinate < pos.end; coordinate++) {
+            new_node_coordinates.push_back(*coordinate);
+	    }
+	}
+	node_coordinates = std::move(new_node_coordinates);
 
 	node_color = chain(p, std::move(node_color));
 	node_geo_pos = chain(p, std::move(node_geo_pos));
@@ -323,7 +333,7 @@ vector<Command>cmd = {
 			if(node_count <= 1)
 				throw runtime_error("Graph must have at least 2 nodes");
 
-			int super_graph_arc_count = 0;
+			u_int64_t super_graph_arc_count = 0;
 			int current_tail = -1;
 			int current_tail_up_deg = 0;
 			int max_up_deg = 0;
@@ -389,7 +399,7 @@ vector<Command>cmd = {
 			}
 
 			int max_arcs_in_search_space = 0;
-			long long arcs_in_search_space_sum = 0;
+			long long arcs_in_search_space_sum = 0; // Maybe overflow too?
 			for(auto x:arcs_in_search_space){
 				max_to(max_arcs_in_search_space, x);
 				arcs_in_search_space_sum += x;
