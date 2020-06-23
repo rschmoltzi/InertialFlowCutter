@@ -12,17 +12,18 @@ class TimeStamps(IntEnum):
 CONSOLE = "../cmake-build-release/console"
 
 PATH = "../graphs/"
-GRAPH_SUB = "walshaw/"
+GRAPH_SUB = "debug/"
 GRAPH_DIR = PATH + GRAPH_SUB
 GRAPH_EXT = ".graph"
-ORD_SUB = "orderings/"
+ORD_SUB = "debug/"
 ORD_DIR = PATH + ORD_SUB
 ORD_EXT = ".ord"
 ORD_TYPE_DELIMITER = "-"
 ORDERING_ALG_NAMES = ["affinity", "plm", "alg_dist", "fa2", "accumulated", "asc_affinity", "asc_plm", "asc_accumulated"] # must not contain the ORD_TYPE_DELIMITER
 ORD_TYPE = dict(zip(ORDERING_ALG_NAMES, [ORD_TYPE_DELIMITER + alg for alg in ORDERING_ALG_NAMES]))
-# ORD_TYPE = {"affinity":"-aff", "plm":"-plm", "alg_dist":"-alg_dist", "fa2":"-fa2", "accumulated":"-acc", "asc_affinity":"-asc_aff", "asc_plm":"-asc_plm",
-#     "asc_accumulated":"-asc_acc"}
+
+CSV_EVALUATION_DIR = "csv-data/"
+
 
 DELIMITER_NODE = ","
 DELIMITER_ORDER = "\n"

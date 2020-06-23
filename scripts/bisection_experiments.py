@@ -1,6 +1,6 @@
 import subprocess, orderings, math, io, config, sys
 import pandas as pd
-from os import scandir, path
+from os import scandir, path, mkdir
 from config import get_graph_path, get_ord_path
 
 
@@ -9,7 +9,7 @@ def main():
     Starts the IFC enum_cuts tests for one specified ordering algorithm. The graphs that will be cut must be in the directory
     specified in config.py and must be in the METIS format.
 
-    Run it like this: python3 -B test.py ordering_alg [amount_orderings]
+    Run it like this: python3 -B bisection_experiments.py ordering_alg [amount_orderings]
     '''
 
     if len(sys.argv) == 3 and sys.argv[2].isdigit():
@@ -21,19 +21,44 @@ def main():
 
     ord_rep = sys.argv[1]
 
-    calculate_all_orders(orderings.ORD_ALG[ord_rep], ord_rep)
 
 
+    #Can be used to create a pretty HTML output
+    #ret.style.format({'Time IFC': "{:.2f}"})
+    print(cut_experiments(ord_rep))
+
+
+def cut_experiments_all_ordering_algs(amount_orderings=6):
+    '''
+    Makes cut experiments and saves them as csv.
+    '''
+    mkdir(config.CSV_EVALUATION_DIR)
+    config.AMOUNT_ORDERINGS = amount_orderings
+    for ord_rep in orderings.ORD_ALG:
+        df = cut_experiments(ord_rep)
+        # with open(config.CSV_EVALUATION_DIR + ord_rep, "w"):
+        df.to_csv(path_or_buf=config.CSV_EVALUATION_DIR + ord_rep + "_" + str(amount_orderings))
+
+
+def experiments_orderings_amount():
+    for amount in [3,6,10,20]:
+        cut_experiments_all_ordering_algs(amount)
+
+
+def cut_experiments(ord_rep):
+    '''
+    First computes all orderings and saves them, then computes the cuts on the orderings.
+    '''
+
+    time_orderings = calculate_all_orders(orderings.ORD_ALG[ord_rep], ord_rep)
+    data = enum_cuts_all(ord_rep)
+
+    # I dont even know if this is needed for print output.
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', None)
 
-    ret = enum_cuts_all(ord_rep)
-
-    #Can be used to create a pretty HTML output
-    #ret.style.format({'Time IFC': "{:.2f}"})
-    print(ret)
-
+    return summarize_data(data, time_orderings)
 
 
 def strip_ext(name, ext):
@@ -57,7 +82,7 @@ def fit_row_in_summary_epsilons(summary_row, row):
             if math.isnan(summary_row[get_eps_label(cmp_eps)]) or row["cut_size"] < summary_row[get_eps_label(cmp_eps)]:
                 summary_row[get_eps_label(cmp_eps)] = row["cut_size"]
 
-def summarize_data(data):
+def summarize_data(data, time_orderings):
     '''
     Creates a pd.DataFrame with the graphs as rows and the epsilons and the time as columns.
     '''
@@ -68,6 +93,9 @@ def summarize_data(data):
         summary.loc[name, "Time IFC"] = frame["time"].max() / 1000000
         for ind, row in frame.iterrows():
             fit_row_in_summary_epsilons(summary.loc[name, :], row)
+
+    summary["Time Ord"] = [time_orderings[x] for x in sorted(time_orderings)]
+    summary["Time Sum"] = summary[["Time IFC", "Time Ord"]].sum(axis=1)
 
     return summary
 
@@ -85,7 +113,6 @@ def enum_cuts_all(ord_rep):
     for entry in scandir(config.GRAPH_DIR):
         name = strip_ext(entry.name,config.GRAPH_EXT)
         if path.isfile(config.get_ord_path(name, ord_rep)):
-        # if entry.name.endswith(config.ORD_TYPE[ord_rep] + config.ORD_EXT): # If file with fitting extensions exists in orderings
             if config.TIME_STAMPS >= config.TimeStamps.SOME:
                 entry_start = pd.Timestamp.now()
 
@@ -99,7 +126,7 @@ def enum_cuts_all(ord_rep):
         after = pd.Timestamp.now()
         print("Calculating cuts: {:f}s".format((after-before).total_seconds()))
 
-    return summarize_data(data)
+    return data
 
 
 
@@ -107,21 +134,26 @@ def calculate_all_orders(ordering_alg, ord_rep):
     if config.TIME_STAMPS >= config.TimeStamps.SPARSE:
         before = pd.Timestamp.now()
 
+    times = dict()
+
     for entry in scandir(config.GRAPH_DIR):
         if entry.name.endswith(config.GRAPH_EXT):
-            if config.TIME_STAMPS >= config.TimeStamps.SOME:
-                entry_start = pd.Timestamp.now()
+            entry_start = pd.Timestamp.now()
 
             name = strip_ext(entry.name, config.GRAPH_EXT)
             orderings.calculate_and_save_order(get_graph_path(name), get_ord_path(name, ord_rep), ordering_alg, config.AMOUNT_ORDERINGS)
 
+            entry_end = pd.Timestamp.now()
+            times[name] = (entry_end-entry_start).total_seconds()
+
             if config.TIME_STAMPS >= config.TimeStamps.SOME:
-                entry_end = pd.Timestamp.now()
                 print("Calculating order for " + entry.name + ": {:f}s".format((entry_end-entry_start).total_seconds()))
 
     if config.TIME_STAMPS >= config.TimeStamps.SPARSE:
         after = pd.Timestamp.now()
         print("Calculating orders: {:f}s".format((after-before).total_seconds()))
+
+    return times # Maybe return as DataFrame
 
 #
 # def time_function(function, verbosity, output_string):
