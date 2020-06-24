@@ -158,11 +158,9 @@ def ascending_connected_random_orderings(g, root, n): # TODO: Increase performan
         for node in PreOrderIter(root):
             node.count = 0
 
-        current_node = root
-        while not current_node.is_leaf:
-            current_node = random.choice(current_node.children)
+        current_leaf = node_to_leaf[peripheral_node(g, nk.graphtools.randomNode(g))]
 
-        increment_edge_count(current_node)
+        increment_edge_count(current_leaf)
 
         ret.append([node.node_id for node in rec_reorder_clusters_with_common_parent(g, root, node_to_leaf)])
 
@@ -232,6 +230,21 @@ def connected_random_reorder_func(g):
 
     return connected_random_reorder
 
+
+def peripheral_node(g, start_node):
+    '''
+    Computes a peripheral node by computing two chained BFS form the start_node, each time selecting the furthest node.
+    '''
+    def bfs_callback(node, count):
+        peripheral_node = node
+
+    peripheral_node = start_node
+    nk.graph.Traversal.BFSfrom(g, start_node, bfs_callback)
+
+    intermediate_node = peripheral_node
+    nk.graph.Traversal.BFSfrom(g, intermediate_node, bfs_callback)
+
+    return peripheral_node
 
 def affinity_orderings(g, amount_orderings):
     '''
@@ -305,6 +318,8 @@ def ascending_affinity_orderings(g, amount_orderings):
         i = 0
         before = pd.Timestamp.now()
 
+    nk.setSeed(config.SEED, False)
+
     root = contraction_trees.affinity_tree(g)
     orderings = ascending_connected_random_orderings(g, root, amount_orderings)
 
@@ -346,6 +361,8 @@ def ascending_accumulated_contraction_orderings(g, amount_orderings):
         i = 0
         before = pd.Timestamp.now()
 
+    nk.setSeed(config.SEED, False)
+
     orderings = ascending_affinity_orderings(g, amount_orderings-(amount_orderings//2))
     orderings += ascending_recursive_PLM_orderings(g, amount_orderings//2)
 
@@ -354,6 +371,9 @@ def ascending_accumulated_contraction_orderings(g, amount_orderings):
         print("Total time: {:f}s".format((after-before).total_seconds()))
 
     return orderings
+
+
+
 
 # -------------  Position based orderings -------------------
 
