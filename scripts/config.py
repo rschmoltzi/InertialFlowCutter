@@ -40,6 +40,7 @@ BULK_STEP = 0.05 # default: 0.05
 PLM_RESOLUTION = 0.0001 # Threshold for the recursion depth of the PLM ordering
 FORCEATLAS2_ITER = 20 # Reasonably fast, but the results are bad
 ALG_DIST_SYSTEMS = 10
+ALG_DIST_ITER = 100000
 
 # Output parameters
 TIME_STAMPS = TimeStamps.SPARSE

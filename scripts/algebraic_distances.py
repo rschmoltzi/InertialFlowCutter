@@ -29,7 +29,7 @@ def algebraic_distance_orderings(g, coefficients_list):
     The length of coefficients_list is the amount of orderings returned.
     '''
 
-    dist = nk.distance.AlgebraicDistance(g, numberSystems=config.ALG_DIST_SYSTEMS)
+    dist = nk.distance.AlgebraicDistance(g, numberSystems=config.ALG_DIST_SYSTEMS, numberIterations=config.ALG_DIST_ITER)
     dist.preprocess()
     ret = list()
     for coef in coefficients_list:
