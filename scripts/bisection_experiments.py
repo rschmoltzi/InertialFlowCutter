@@ -1,6 +1,6 @@
 import subprocess, orderings, math, io, config, sys
 import pandas as pd
-from os import scandir, path, mkdir, isdir
+from os import scandir, path, mkdir
 from config import get_graph_path, get_ord_path
 from collections import OrderedDict
 
@@ -33,7 +33,7 @@ def cut_experiments_all_ordering_algs(amount_orderings=6):
     '''
     Makes cut experiments and saves them as csv.
     '''
-    if not isdir(config.CSV_EVALUATION_DIR):
+    if not path.isdir(config.CSV_EVALUATION_DIR):
         mkdir(config.CSV_EVALUATION_DIR)
     config.AMOUNT_ORDERINGS = amount_orderings
     for ord_rep in orderings.ORD_ALG:
