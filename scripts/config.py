@@ -1,6 +1,7 @@
 '''Configurations for the test scripts'''
 
 from enum import IntEnum
+from collections import OrderedDict
 
 class TimeStamps(IntEnum):
     NONE = 0
@@ -20,7 +21,7 @@ ORD_DIR = PATH + ORD_SUB
 ORD_EXT = ".ord"
 ORD_TYPE_DELIMITER = "-"
 ORDERING_ALG_NAMES = ["affinity", "plm", "alg_dist", "fa2", "accumulated", "asc_affinity", "asc_plm", "asc_accumulated"] # must not contain the ORD_TYPE_DELIMITER
-ORD_TYPE = dict(zip(ORDERING_ALG_NAMES, [ORD_TYPE_DELIMITER + alg for alg in ORDERING_ALG_NAMES]))
+ORD_TYPE = OrderedDict(zip(ORDERING_ALG_NAMES, [ORD_TYPE_DELIMITER + alg for alg in ORDERING_ALG_NAMES]))
 
 CSV_EVALUATION_DIR = "csv-data/"
 

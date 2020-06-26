@@ -2,6 +2,7 @@ import subprocess, orderings, math, io, config, sys
 import pandas as pd
 from os import scandir, path, mkdir
 from config import get_graph_path, get_ord_path
+from collections import OrderedDict
 
 
 def main():
@@ -108,7 +109,7 @@ def enum_cuts_all(ord_rep):
     if config.TIME_STAMPS >= config.TimeStamps.SPARSE:
         before = pd.Timestamp.now()
 
-    data = dict()
+    data = OrderedDict()
 
     for entry in scandir(config.GRAPH_DIR):
         name = strip_ext(entry.name,config.GRAPH_EXT)
@@ -134,7 +135,7 @@ def calculate_all_orders(ordering_alg, ord_rep):
     if config.TIME_STAMPS >= config.TimeStamps.SPARSE:
         before = pd.Timestamp.now()
 
-    times = dict()
+    times = OrderedDict()
 
     for entry in scandir(config.GRAPH_DIR):
         if entry.name.endswith(config.GRAPH_EXT):
@@ -153,7 +154,7 @@ def calculate_all_orders(ordering_alg, ord_rep):
         after = pd.Timestamp.now()
         print("Calculating orders: {:f}s".format((after-before).total_seconds()))
 
-    return times # Maybe return as DataFrame
+    return times
 
 #
 # def time_function(function, verbosity, output_string):

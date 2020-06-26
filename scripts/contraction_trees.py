@@ -4,12 +4,13 @@ import networkit as nk
 import random, config
 import pandas as pd
 from anytree import Node, RenderTree, PreOrderIter, AnyNode
+from collections import OrderedDict
 
 
 # g is graph on which the subgraph is build, s is a set of nodes
 def subgraph(g, s):
     res = nk.Graph(len(s), weighted=g.isWeighted())
-    node_ids = dict(zip(s, range(len(s))))
+    node_ids = OrderedDict(zip(s, range(len(s))))
     for u in s:
         for n in g.neighbors(u):
             if u < n and n in s:
@@ -127,7 +128,7 @@ class DisjointSet:
     # this usage is subject to change in future performance improvements
     # therefore this method might become unnecessary
     def get(self):
-        d = dict()
+        d = OrderedDict()
         for node in range(self.amount_nodes):
             root = self.find(node)
             if root not in d:
@@ -172,7 +173,7 @@ def contract_to_nodes(g, disjoint_set, d):
     for rep in d:
         node_to_rep.append(rep)
 
-    rep_to_node = dict()
+    rep_to_node = OrderedDict()
     cnt = 0
     for rep in d:
         rep_to_node[rep] = cnt

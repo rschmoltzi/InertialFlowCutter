@@ -2,7 +2,7 @@ import networkit as nk
 import contraction_trees, algebraic_distances, config, random
 from anytree import Node, RenderTree, PreOrderIter, AnyNode
 from anytree.iterators import AbstractIter
-from collections import Counter
+from collections import Counter, OrderedDict
 import pandas as pd
 
 '''
@@ -146,7 +146,7 @@ def ascending_connected_random_orderings(g, root, n): # TODO: Increase performan
 
     random.seed(config.SEED)
 
-    node_to_leaf = dict() # map from node to leaf
+    node_to_leaf = OrderedDict() # map from node to leaf
     for leaf in root.leaves:
         node_to_leaf[leaf.node_id] = leaf
 
@@ -188,10 +188,10 @@ def connected_random_reorder_func(g):
         if len(l) <= 1:
             return l
 
-        nodes = dict()
+        nodes = OrderedDict()
 
         # inverse map
-        node_to_cluster = dict()
+        node_to_cluster = OrderedDict()
         for cluster in l:
             cluster_to_nodes = set()
             for node in PreOrderIter(cluster):
@@ -204,7 +204,7 @@ def connected_random_reorder_func(g):
         #choose random cluster c
         c = random.choice(l)
         # used as set that preserves insertion order
-        added_clusters = dict()
+        added_clusters = OrderedDict()
         added_clusters[c] = None
 
         #create list with #edges to the cluster
@@ -415,4 +415,4 @@ def force_atlas_2_orderings(g, amount_orderings):
     return algebraic_distances.force_atlas_2_orderings(g, coefficients)
 
 # Stuck at the end because of parse order...
-ORD_ALG = dict(zip(config.ORD_TYPE, [affinity_orderings, recursive_PLM_orderings, algebraic_distance_orderings, force_atlas_2_orderings, accumulated_contraction_orderings, ascending_affinity_orderings, ascending_recursive_PLM_orderings, ascending_accumulated_contraction_orderings]))
+ORD_ALG = OrderedDict(zip(config.ORD_TYPE, [affinity_orderings, recursive_PLM_orderings, algebraic_distance_orderings, force_atlas_2_orderings, accumulated_contraction_orderings, ascending_affinity_orderings, ascending_recursive_PLM_orderings, ascending_accumulated_contraction_orderings]))
