@@ -39,7 +39,7 @@ def cut_experiments_all_ordering_algs(amount_orderings=6):
     for ord_rep in orderings.ORD_ALG:
         df = cut_experiments(ord_rep)
         # with open(config.CSV_EVALUATION_DIR + ord_rep, "w"):
-        df.to_csv(path_or_buf=config.CSV_EVALUATION_DIR + ord_rep + "_" + str(amount_orderings))
+        df.to_csv(path_or_buf=config.CSV_EVALUATION_DIR + ord_rep + "_" + str(amount_orderings) + ".csv")
 
 
 def experiments_orderings_amount():
@@ -96,7 +96,7 @@ def summarize_data(data, time_orderings):
         for ind, row in frame.iterrows():
             fit_row_in_summary_epsilons(summary.loc[name, :], row)
 
-    summary["Time Ord"] = [time_orderings[x] for x in sorted(time_orderings)]
+    summary["Time Ord"] = [time_orderings[x] for x in sorted(time_orderings.keys())]
     summary["Time Sum"] = summary[["Time IFC", "Time Ord"]].sum(axis=1)
 
     return summary
