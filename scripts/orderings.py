@@ -36,13 +36,15 @@ def calculate_and_save_order(path_to_graph, path_to_ord, ordering_alg, amount_or
     comp = nk.components.ConnectedComponents(g)
     comp.run()
     if comp.numberOfComponents() > 1:
-        return
+        return False
 
     orders = ordering_alg(g, amount_orders)
 
     with open(path_to_ord, "w") as f:
         f.write(config.DELIMITER_ORDER.join(config.DELIMITER_NODE.join(str(i) for i in order) for order in orders))
 
+    return True
+    
 
 def get_ordering(root, reorder):
     # Slightly modified from https://github.com/c0fec0de/anytree/blob/master/anytree/iterators/preorderiter.py

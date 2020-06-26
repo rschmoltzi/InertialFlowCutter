@@ -96,8 +96,6 @@ def summarize_data(data, time_orderings):
         for ind, row in frame.iterrows():
             fit_row_in_summary_epsilons(summary.loc[name, :], row)
 
-    print("Rows summary:", len(summary.index))
-    print("Rows timings ord:", len(time_orderings))
     summary["Time Ord"] = [time_orderings[x] for x in sorted(time_orderings.keys())]
     summary["Time Sum"] = summary[["Time IFC", "Time Ord"]].sum(axis=1)
 
@@ -145,10 +143,11 @@ def calculate_all_orders(ordering_alg, ord_rep):
             entry_start = pd.Timestamp.now()
 
             name = strip_ext(entry.name, config.GRAPH_EXT)
-            orderings.calculate_and_save_order(get_graph_path(name), get_ord_path(name, ord_rep), ordering_alg, config.AMOUNT_ORDERINGS)
+            connected = orderings.calculate_and_save_order(get_graph_path(name), get_ord_path(name, ord_rep), ordering_alg, config.AMOUNT_ORDERINGS)
 
             entry_end = pd.Timestamp.now()
-            times[name] = (entry_end-entry_start).total_seconds()
+            if connected:
+                times[name] = (entry_end-entry_start).total_seconds()
 
             if config.TIME_STAMPS >= config.TimeStamps.SOME:
                 print("Calculating order for " + entry.name + ": {:f}s".format((entry_end-entry_start).total_seconds()))
