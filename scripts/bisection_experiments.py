@@ -96,6 +96,8 @@ def summarize_data(data, time_orderings):
         for ind, row in frame.iterrows():
             fit_row_in_summary_epsilons(summary.loc[name, :], row)
 
+    print("Rows summary:", len(summary.index))
+    print("Rows timings ord:", len(time_orderings))
     summary["Time Ord"] = [time_orderings[x] for x in sorted(time_orderings.keys())]
     summary["Time Sum"] = summary[["Time IFC", "Time Ord"]].sum(axis=1)
 
