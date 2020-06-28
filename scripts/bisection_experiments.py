@@ -215,10 +215,10 @@ def run(args):
     rename = {'    time' : 'time'}
     try:
         ret = pd.read_csv(io.StringIO(output)).rename(rename, axis='columns')
-    except EmptyDataError as e:
+    except pd.errors.EmptyDataError as e:
         print(output)
         raise
-        
+
     return ret
 
 if __name__ == '__main__':
