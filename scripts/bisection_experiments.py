@@ -213,7 +213,13 @@ def args_enum_cuts(name, ord_rep):
 def run(args):
     output = subprocess.check_output(args, universal_newlines=True)
     rename = {'    time' : 'time'}
-    return pd.read_csv(io.StringIO(output)).rename(rename, axis='columns')
+    try:
+        ret = pd.read_csv(io.StringIO(output)).rename(rename, axis='columns')
+    except EmptyDataError as e:
+        print(output)
+        raise
+        
+    return ret
 
 if __name__ == '__main__':
     main()
