@@ -42,9 +42,11 @@ def cut_experiments_all_ordering_algs(amount_orderings=6):
         df.to_csv(path_or_buf=config.CSV_EVALUATION_DIR + ord_rep + "_" + str(amount_orderings) + ".csv")
 
 
-def experiments_orderings_amount():
-    for amount in [3,6,10,20]:
-        cut_experiments_all_ordering_algs(amount)
+def experiments_orderings_amount() as file:
+    with open("please_no_unmount", "w"):
+        for amount in [3,6,10,20]:
+            cut_experiments_all_ordering_algs(amount)
+            file.write("ping")
 
 
 def cut_experiments(ord_rep):
@@ -52,7 +54,7 @@ def cut_experiments(ord_rep):
     First computes all orderings and saves them, then computes the cuts on the orderings.
     '''
 
-    time_orderings = calculate_all_orders(orderings.ORD_ALG[ord_rep], ord_rep)
+    time_orderings = calculate_all_orderings(orderings.ORD_ALG[ord_rep], ord_rep)
     data = enum_cuts_all(ord_rep)
 
     # I dont even know if this is needed for print output.
@@ -132,7 +134,7 @@ def enum_cuts_all(ord_rep):
 
 
 
-def calculate_all_orders(ordering_alg, ord_rep):
+def calculate_all_orderings(ordering_alg, ord_rep):
     if config.TIME_STAMPS >= config.TimeStamps.SPARSE:
         before = pd.Timestamp.now()
 
