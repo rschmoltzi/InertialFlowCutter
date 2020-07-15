@@ -1,6 +1,7 @@
 '''Configurations for the test scripts'''
 
 from enum import IntEnum
+import os
 from collections import OrderedDict
 
 class TimeStamps(IntEnum):
@@ -10,13 +11,15 @@ class TimeStamps(IntEnum):
     ALL = 3
 
 # Paths and file details
-CONSOLE = "../cmake-build-release/console"
+ABS_PATH_WD = os.getcwd() + "/"
 
-PATH = "../graphs/"
-GRAPH_SUB = "debug/"
+CONSOLE = ABS_PATH_WD + "../cmake-build-release/console"
+
+PATH = ABS_PATH_WD + "../graphs/"
+GRAPH_SUB = "walshaw/"
 GRAPH_DIR = PATH + GRAPH_SUB
 GRAPH_EXT = ".graph"
-ORD_SUB = "debug/"
+ORD_SUB = "orderings/"
 ORD_DIR = PATH + ORD_SUB
 ORD_EXT = ".ord"
 ORD_TYPE_DELIMITER = "-"

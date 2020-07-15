@@ -42,11 +42,21 @@ def cut_experiments_all_ordering_algs(amount_orderings=6):
         df.to_csv(path_or_buf=config.CSV_EVALUATION_DIR + ord_rep + "_" + str(amount_orderings) + ".csv")
 
 
-def experiments_orderings_amount() as file:
-    with open("please_no_unmount", "w"):
-        for amount in [3,6,10,20]:
-            cut_experiments_all_ordering_algs(amount)
-            file.write("ping")
+def experiments_orderings_amount():
+    for amount in [3,6,10,20]:
+        cut_experiments_all_ordering_algs(amount)
+
+def parameter_study_alg_dist():
+    alg_dist_dir = config.CSV_EVALUATION_DIR + "alg-dist/"
+    if not path.isdir(alg_dist_dir):
+        mkdir(alg_dist_dir)
+
+    for amount in [3,6,10,20]:
+        config.AMOUNT_ORDERINGS = amount
+        for iterations in [1000, 10000, 100000]:
+            config.ALG_DIST_ITER = iterations
+            df = cut_experiments("alg_dist")
+            df.to_csv(path_or_buf=alg_dist_dir + "alg_dist" + "_ord" + str(amount) + "iter" + str(iterations) + ".csv")
 
 
 def cut_experiments(ord_rep):
@@ -215,11 +225,7 @@ def args_enum_cuts(name, ord_rep):
 def run(args):
     output = subprocess.check_output(args, universal_newlines=True)
     rename = {'    time' : 'time'}
-    try:
-        ret = pd.read_csv(io.StringIO(output)).rename(rename, axis='columns')
-    except pd.errors.EmptyDataError as e:
-        print(output)
-        raise
+    ret = pd.read_csv(io.StringIO(output)).rename(rename, axis='columns')
 
     return ret
 
