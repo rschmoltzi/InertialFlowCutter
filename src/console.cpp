@@ -3015,7 +3015,7 @@ vector<Command>cmd = {
                     node_coordinates.resize(num_coordinates * new_orderings[0].size());
                     for (int pos = 0; pos < static_cast<int>(new_orderings[0].size()); pos++) {
                         for (int ord = 0; ord < static_cast<int>(new_orderings.size()); ord++) {
-                            node_coordinates.[new_orderings[ord][pos] * num_coordinates + ord] = pos;
+                            node_coordinates[new_orderings[ord][pos] * num_coordinates + ord] = pos;
                         }
                     }
                 } else {
