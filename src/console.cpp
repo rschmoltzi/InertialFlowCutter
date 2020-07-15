@@ -1882,7 +1882,7 @@ vector<Command>cmd = {
 			cout << flow_cutter_config.get_config() << flush;
 		}
 	},
-	
+
     {
         "flow_cutter_accelerated_enum_cuts", 1,
         "Enumerates balanced cuts.",
@@ -2286,7 +2286,7 @@ vector<Command>cmd = {
 	}
 },
 
-	
+
 {
 	"load_node_color_partition", 1,
 	"Loads a partition file into the node colors",
@@ -3012,9 +3012,10 @@ vector<Command>cmd = {
                     num_coordinates = static_cast<int>(new_orderings.size());
 
                     node_coordinates.clear();
-                    for (int node = 0; node < static_cast<int>(new_orderings[0].size()); node++) {
+                    node_coordinates.resize(num_coordinates * new_orderings[0].size());
+                    for (int pos = 0; pos < static_cast<int>(new_orderings[0].size()); pos++) {
                         for (int ord = 0; ord < static_cast<int>(new_orderings.size()); ord++) {
-                            node_coordinates.push_back(new_orderings[ord][node]);
+                            node_coordinates.[new_orderings[ord][pos] * num_coordinates + ord] = pos;
                         }
                     }
                 } else {
@@ -3199,4 +3200,3 @@ int main(int argc, char*argv[]){
 		cerr << "Exception : " << err.what() << endl;
 	}
 }
-
