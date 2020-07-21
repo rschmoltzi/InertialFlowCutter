@@ -58,6 +58,19 @@ def parameter_study_alg_dist():
             df = cut_experiments("alg_dist")
             df.to_csv(path_or_buf=alg_dist_dir + "alg_dist" + "_ord" + str(amount) + "iter" + str(iterations) + ".csv")
 
+def parameter_study_fa2():
+    fa2_dir = config.CSV_EVALUATION_DIR + "fa2/"
+    if not path.isdir(fa2_dir):
+        mkdir(fa2_dir)
+
+    for amount in [3,6,10,20]:
+        config.AMOUNT_ORDERINGS = amount
+        for iterations in [10, 100, 500, 1000, 2000]:
+            config.FORCEATLAS2_ITER = iterations
+            df = cut_experiments("fa2")
+            df.to_csv(path_or_buf=fa2_dir + "fa2" + "_ord" + str(amount) + "iter" + str(iterations) + ".csv")
+
+
 
 def cut_experiments(ord_rep):
     '''
