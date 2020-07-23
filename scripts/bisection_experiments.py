@@ -168,7 +168,7 @@ def calculate_all_orderings(ordering_alg, ord_rep):
             entry_start = pd.Timestamp.now()
 
             name = strip_ext(entry.name, config.GRAPH_EXT)
-            connected = orderings.calculate_and_save_order(get_graph_path(name), get_ord_path(name, ord_rep), ordering_alg, config.AMOUNT_ORDERINGS)
+            connected = orderings.calculate_and_save_ordering(get_graph_path(name), get_ord_path(name, ord_rep), ordering_alg, config.AMOUNT_ORDERINGS)
 
             entry_end = pd.Timestamp.now()
             if connected:

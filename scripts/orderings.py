@@ -26,7 +26,7 @@ def load_graph(path_to_graph, reader=nk.graphio.METISGraphReader()):
 
     return g
 
-def calculate_and_save_order(path_to_graph, path_to_ord, ordering_alg, amount_orders, reader=nk.graphio.METISGraphReader()):
+def calculate_and_save_ordering(path_to_graph, path_to_ord, ordering_alg, amount_orderings, reader=nk.graphio.METISGraphReader()):
     '''
     Calculates the orderings for the given graph and saves them in the specified directory.
     '''
@@ -38,13 +38,13 @@ def calculate_and_save_order(path_to_graph, path_to_ord, ordering_alg, amount_or
     if comp.numberOfComponents() > 1:
         return False
 
-    orders = ordering_alg(g, amount_orders)
+    orders = ordering_alg(g, amount_orderings)
 
     with open(path_to_ord, "w") as f:
         f.write(config.DELIMITER_ORDER.join(config.DELIMITER_NODE.join(str(i) for i in order) for order in orders))
 
     return True
-    
+
 
 def get_ordering(root, reorder):
     # Slightly modified from https://github.com/c0fec0de/anytree/blob/master/anytree/iterators/preorderiter.py
