@@ -8,11 +8,13 @@ def main():
     Computes a cch a evaluates the corresponding chordal super graph. The arguments are the graph to be tested and its ordering to be used.
     Times the computation of the cch.
     '''
-    ordering_list = [["alg_dist", 10], ["asc_affinity", 10], ["plm", 10], ["asc_accumulated", 10]]
+    # ordering_list = [["alg_dist", 10], ["asc_affinity", 10], ["plm", 10], ["asc_accumulated", 10]]
+    #
+    # config.ALG_DIST_ITER = 10000
+    #
+    # nested_dissection_experiments(ordering_list)
 
-    config.ALG_DIST_ITER = 10000
-
-    nested_dissection_experiments(ordering_list)
+    reference_cchs()
 
 def nested_dissection_experiments(ordering_list):
     nd_dir = config.ORD_DIR + "nested-dissection/"
