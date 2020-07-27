@@ -55,6 +55,59 @@ def strip_ext(name, ext):
     return name
 
 
+def reference_cchs():
+    algorithm_names = ["inertial_flow", "flow_cutter", "accelerated_flow_cutter"]
+    graphs = ["europe", "usa", "col", "cal"]
+    for alg in algorithm_names:
+        cch_method_name = "reorder_nodes_in_" + alg + "_cch_order"
+
+        with open(alg + ".out", "w") as file:
+            for graph in graphs:
+                file.write(run(args_cch_ifc(graph, cch_method_name)))
+
+
+def args_cch_ifc(graph_name, cch_method_name):
+    args = [config.CONSOLE]
+
+    args.append("load_dimacs_graph")
+    args.append(config.GRAPH_DIR + graph_name + ".gr")
+
+    args.append("load_dimacs_geo_pos")
+    args.append(config.GRAPH_DIR + graph_name + ".co")
+
+    args.append("add_back_arcs")
+    args.append("remove_multi_arcs")
+    args.append("remove_loops")
+
+    args.append("flow_cutter_set")
+    args.append("random_seed")
+    args.append("5489")
+
+    args.append("flow_cutter_set")
+    args.append("ReportCuts")
+    args.append("no")
+
+    args.append("flow_cutter_set")
+    args.append("max_cut_size")
+    args.append("1000000") # default is 1000 but wont produce cuts on denser graphs
+
+    # args.append("flow_cutter_set")
+    # args.append("initial_assimilated_fraction")
+    # args.append(str(config.INITIAL_ASSIM)) # default 0.05
+    #
+    # args.append("flow_cutter_set")
+    # args.append("bulk_step_fraction")
+    # args.append(str(config.BULK_STEP))
+
+    args.append("report_time")
+    args.append(cch_method_name)
+
+    args.append("do_not_report_time")
+    args.append("examine_chordal_supergraph")
+
+    return args
+
+
 
 def args_cch(graph_name, ord_path):
     args = [config.CONSOLE]
