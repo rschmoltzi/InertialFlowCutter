@@ -63,9 +63,9 @@ def parameter_study_fa2():
     if not path.isdir(fa2_dir):
         mkdir(fa2_dir)
 
-    for amount in [3,6,10,20]:
+    for amount in [6,10]:
         config.AMOUNT_ORDERINGS = amount
-        for iterations in [10, 100, 500, 1000, 2000]:
+        for iterations in [20, 500, 2000]:
             config.FORCEATLAS2_ITER = iterations
             df = cut_experiments("fa2")
             df.to_csv(path_or_buf=fa2_dir + "fa2" + "_ord" + str(amount) + "iter" + str(iterations) + ".csv")
