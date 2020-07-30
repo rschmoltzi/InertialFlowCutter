@@ -47,12 +47,16 @@ def experiments_orderings_amount():
         cut_experiments_all_ordering_algs(amount)
 
 def bipartitions_dimacs():
+    road_dir = config.CSV_EVALUATION_DIR + "road/"
+    if not path.isdir(road_dir):
+        mkdir(road_dir)
+
     config.AMOUNT_ORDERINGS = 10
     config.ALG_DIST_ITER = 10000
     alg_names = ["alg_dist", "asc_affinity", "plm", "asc_accumulated"]
     for ord_rep in alg_names:
         df = cut_experiments(ord_rep)
-        df.to_csv(path_or_buf=config.CSV_EVALUATION_DIR + ord_rep + "_" + str(10) + ".csv")
+        df.to_csv(path_or_buf=road_dir + ord_rep + "_" + str(10) + ".csv")
 
 
 def parameter_study_alg_dist():
